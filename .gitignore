@@ -1,0 +1,48 @@
+# Environment variables
+.env
+.env.backup
+.env.local
+
+# Data files
+data/
+*.json
+reservations*.json
+
+# Go build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+hxs_reservation_system
+bin/
+tmp/
+
+# Test binary
+*.test
+
+# Output of the go coverage tool
+*.out
+coverage.html
+
+# Dependency directories
+vendor/
+
+# Go workspace file
+go.work
+go.work.sum
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Air (hot reload)
+tmp/
+build-errors.log
+
+# OS
+.DS_Store
+Thumbs.db
