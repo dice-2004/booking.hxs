@@ -1,6 +1,7 @@
 # 面接予約システム（Discord Bot）
 
 Go言語で作成されたDiscord Bot用の面接予約システムです。スラッシュコマンドを使用して、面接の予約、取り消し、完了を管理できます。
+AIコーディングです。
 
 ## 機能
 
@@ -182,7 +183,7 @@ go build -o hxs_reservation_system
 面接の予約を作成します。
 
 **必須オプション:**
-- `date`: 予約日（YYYY-MM-DD形式、例: 2025-10-15）
+- `date`: 予約日（YYYY/MM/DD形式、例: 2025/10/15）
 - `start_time`: 開始時間（HH:MM形式、例: 14:00）
 
 **任意オプション:**
@@ -191,7 +192,7 @@ go build -o hxs_reservation_system
 
 **使用例:**
 ```
-/reserve date:2025-10-15 start_time:14:00 end_time:15:00 comment:技術面接
+/reserve date:2025/10/15 start_time:14:00 end_time:15:00 comment:技術面接
 ```
 
 **動作:**
@@ -420,4 +421,4 @@ make vet
 
 ## 作者
 
-作成者の情報をここに記載
+dice
