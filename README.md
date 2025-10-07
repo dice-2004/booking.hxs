@@ -1,4 +1,4 @@
-# 面接予約システム（Discord Bot）
+# booking.hxs（Discord Bot）
 
 Go言語で作成されたDiscord Bot用の面接予約システムです。スラッシュコマンドを使用して、面接の予約、取り消し、完了を管理できます。
 AIコーディングです。
