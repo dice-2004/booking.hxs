@@ -46,3 +46,4 @@ build-errors.log
 # OS
 .DS_Store
 Thumbs.db
+*.log
