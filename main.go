@@ -5,18 +5,23 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/dice/hxs_reservation_system/commands"
+	"github.com/dice/hxs_reservation_system/logging"
 	"github.com/dice/hxs_reservation_system/storage"
 	"github.com/joho/godotenv"
 )
 
 var (
 	store   *storage.Storage
+	logger  *logging.Logger
 	guildID string
+    // 同一Interactionの重複処理を防止
+    processedInteractions sync.Map
 )
 
 func init() {
@@ -36,6 +41,10 @@ func main() {
 	}
 	log.Println("Reservations loaded successfully")
 
+	// Loggerの初期化
+	logger = logging.NewLogger("./logs")
+	log.Println("Logger initialized successfully")
+
 	// Discordトークンを取得
 	token := os.Getenv("DISCORD_TOKEN")
 	if token == "" {
@@ -48,9 +57,13 @@ func main() {
 		log.Fatalf("Failed to create Discord session: %v", err)
 	}
 
-	// コマンドハンドラーを設定
+	// コマンドハンドラーを設定（重複ガード付き）
 	dg.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		commands.HandleInteraction(s, i, store)
+		// Interaction ID で一度きりにする
+		if _, loaded := processedInteractions.LoadOrStore(i.ID, struct{}{}); loaded {
+			return
+		}
+		commands.HandleInteraction(s, i, store, logger)
 	})
 
 	// 必要なIntentを設定
@@ -83,6 +96,15 @@ func main() {
 		}
 	}()
 
+	// 定期的に古いログをクリーンアップ（1日1回）
+	go func() {
+		ticker := time.NewTicker(24 * time.Hour)
+		defer ticker.Stop()
+		for range ticker.C {
+			logger.CleanupOldLogs()
+		}
+	}()
+
 	// シグナルを待つ
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
@@ -95,6 +117,20 @@ func main() {
 	} else {
 		log.Println("Reservations saved successfully")
 	}
+
+	// 統計情報を表示
+	stats := logger.GetStats()
+	log.Printf("=== コマンド統計 ===")
+	log.Printf("総コマンド数: %d", stats.TotalCommands)
+	log.Printf("コマンド別統計:")
+	for cmd, count := range stats.CommandCounts {
+		log.Printf("  %s: %d回", cmd, count)
+	}
+	log.Printf("ユーザー別統計:")
+	for userID, count := range stats.UserCounts {
+		log.Printf("  %s: %d回", userID, count)
+	}
+	log.Printf("最終更新: %s", stats.LastUpdated.Format("2006-01-02 15:04:05"))
 }
 
 func registerCommands(s *discordgo.Session) error {
@@ -106,7 +142,7 @@ func registerCommands(s *discordgo.Session) error {
 				{
 					Type:        discordgo.ApplicationCommandOptionString,
 					Name:        "date",
-					Description: "予約日（YYYY-MM-DD形式、例: 2025-10-15）",
+					Description: "予約日（YYYY-MM-DD または YYYY/MM/DD、例: 2025-10-15 または 2025/10/15）",
 					Required:    true,
 				},
 				{

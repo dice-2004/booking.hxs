@@ -7,28 +7,43 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/dice/hxs_reservation_system/logging"
 	"github.com/dice/hxs_reservation_system/models"
 	"github.com/dice/hxs_reservation_system/storage"
 )
 
 // HandleInteraction はDiscordのインタラクションを処理する
-func HandleInteraction(s *discordgo.Session, i *discordgo.InteractionCreate, store *storage.Storage) {
-	switch i.ApplicationCommandData().Name {
+func HandleInteraction(s *discordgo.Session, i *discordgo.InteractionCreate, store *storage.Storage, logger *logging.Logger) {
+	commandName := i.ApplicationCommandData().Name
+	userID := i.Member.User.ID
+	username := getDisplayName(i.Member)
+	channelID := i.ChannelID
+
+	// コマンドパラメータを取得
+	parameters := make(map[string]interface{})
+	for _, opt := range i.ApplicationCommandData().Options {
+		parameters[opt.Name] = opt.Value
+	}
+
+	// コマンド実行開始をログに記録
+	logger.LogCommand(commandName, userID, username, channelID, true, "", parameters)
+
+	switch commandName {
 	case "reserve":
-		handleReserve(s, i, store)
+		handleReserve(s, i, store, logger)
 	case "cancel":
-		handleCancel(s, i, store)
+		handleCancel(s, i, store, logger)
 	case "complete":
-		handleComplete(s, i, store)
+		handleComplete(s, i, store, logger)
 	case "list":
-		handleList(s, i, store)
+		handleList(s, i, store, logger)
 	case "my-reservations":
-		handleMyReservations(s, i, store)
+		handleMyReservations(s, i, store, logger)
 	}
 }
 
 // handleReserve は予約作成コマンドを処理する
-func handleReserve(s *discordgo.Session, i *discordgo.InteractionCreate, store *storage.Storage) {
+func handleReserve(s *discordgo.Session, i *discordgo.InteractionCreate, store *storage.Storage, logger *logging.Logger) {
 	options := i.ApplicationCommandData().Options
 	optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
 	for _, opt := range options {
@@ -58,19 +73,40 @@ func handleReserve(s *discordgo.Session, i *discordgo.InteractionCreate, store *
 		comment = opt.StringValue()
 	}
 
-	// 日付と時間の形式を検証
+	// ログ用パラメータを構築
+	parameters := map[string]interface{}{
+		"date":       date,
+		"start_time": startTime,
+		"end_time":   endTime,
+	}
+	if comment != "" {
+		parameters["comment"] = comment
+	}
+
+	// 日付と時間の形式を検証（YYYY-MM-DD または YYYY/MM/DD を許可）
 	if _, err := time.Parse("2006-01-02", date); err != nil {
-		respondError(s, i, "日付の形式が正しくありません（YYYY-MM-DD形式で入力してください）")
-		return
+		if t2, err2 := time.Parse("2006/01/02", date); err2 == nil {
+			// 正規化して保存用は YYYY-MM-DD に統一
+			date = t2.Format("2006-01-02")
+		} else {
+			errorMsg := "日付の形式が正しくありません（YYYY-MM-DD または YYYY/MM/DD）"
+			logger.LogCommand("reserve", i.Member.User.ID, getDisplayName(i.Member), i.ChannelID, false, errorMsg, parameters)
+			respondError(s, i, errorMsg)
+			return
+		}
 	}
 
 	if _, err := time.Parse("15:04", startTime); err != nil {
-		respondError(s, i, "開始時間の形式が正しくありません（HH:MM形式で入力してください）")
+		errorMsg := "開始時間の形式が正しくありません（HH:MM形式で入力してください）"
+		logger.LogCommand("reserve", i.Member.User.ID, getDisplayName(i.Member), i.ChannelID, false, errorMsg, parameters)
+		respondError(s, i, errorMsg)
 		return
 	}
 
 	if _, err := time.Parse("15:04", endTime); err != nil {
-		respondError(s, i, "終了時間の形式が正しくありません（HH:MM形式で入力してください）")
+		errorMsg := "終了時間の形式が正しくありません（HH:MM形式で入力してください）"
+		logger.LogCommand("reserve", i.Member.User.ID, getDisplayName(i.Member), i.ChannelID, false, errorMsg, parameters)
+		respondError(s, i, errorMsg)
 		return
 	}
 
@@ -158,7 +194,7 @@ func handleReserve(s *discordgo.Session, i *discordgo.InteractionCreate, store *
 }
 
 // handleCancel は予約キャンセルコマンドを処理する
-func handleCancel(s *discordgo.Session, i *discordgo.InteractionCreate, store *storage.Storage) {
+func handleCancel(s *discordgo.Session, i *discordgo.InteractionCreate, store *storage.Storage, logger *logging.Logger) {
 	options := i.ApplicationCommandData().Options
 	optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
 	for _, opt := range options {
@@ -211,7 +247,7 @@ func handleCancel(s *discordgo.Session, i *discordgo.InteractionCreate, store *s
 }
 
 // handleComplete は予約完了コマンドを処理する
-func handleComplete(s *discordgo.Session, i *discordgo.InteractionCreate, store *storage.Storage) {
+func handleComplete(s *discordgo.Session, i *discordgo.InteractionCreate, store *storage.Storage, logger *logging.Logger) {
 	options := i.ApplicationCommandData().Options
 	optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
 	for _, opt := range options {
@@ -264,7 +300,7 @@ func handleComplete(s *discordgo.Session, i *discordgo.InteractionCreate, store 
 }
 
 // handleList はすべての予約一覧を表示する
-func handleList(s *discordgo.Session, i *discordgo.InteractionCreate, store *storage.Storage) {
+func handleList(s *discordgo.Session, i *discordgo.InteractionCreate, store *storage.Storage, logger *logging.Logger) {
 	reservations := store.GetAllReservations()
 
 	if len(reservations) == 0 {
@@ -298,7 +334,7 @@ func handleList(s *discordgo.Session, i *discordgo.InteractionCreate, store *sto
 }
 
 // handleMyReservations は自分の予約一覧を表示する
-func handleMyReservations(s *discordgo.Session, i *discordgo.InteractionCreate, store *storage.Storage) {
+func handleMyReservations(s *discordgo.Session, i *discordgo.InteractionCreate, store *storage.Storage, logger *logging.Logger) {
 	userID := i.Member.User.ID
 	reservations := store.GetUserReservations(userID)
 
