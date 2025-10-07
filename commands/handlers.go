@@ -337,7 +337,7 @@ func handleList(s *discordgo.Session, i *discordgo.InteractionCreate, store *sto
 		if r.Comment != "" {
 			sb.WriteString(fmt.Sprintf("💬   %s\n", r.Comment))
 		} else {
-			sb.WriteString("💬   なし\n")
+			sb.WriteString("💬   ----\n")
 		}
 	}
 	// sb.WriteString("────────────────────────────\n")
@@ -378,17 +378,17 @@ func handleMyReservations(s *discordgo.Session, i *discordgo.InteractionCreate, 
 	var sb strings.Builder
 	sb.WriteString("📋 **あなたの予約一覧**\n\n")
 	for _, r := range reservations {
-		sb.WriteString("────────────────────────────\n")
-		sb.WriteString(fmt.Sprintf("%s  **%s %s - %s**\n", getStatusEmoji(r.Status), formatDate(r.Date), r.StartTime, r.EndTime))
-		sb.WriteString(fmt.Sprintf("    👤 <@%s>\n", r.UserID))
-		sb.WriteString(fmt.Sprintf("    予約ID:    `%s`\n", r.ID))
+		sb.WriteString("\n")
+		sb.WriteString(fmt.Sprintf("%s    **%s %s - %s**\n", getStatusEmoji(r.Status), formatDate(r.Date), r.StartTime, r.EndTime))
+		sb.WriteString(fmt.Sprintf("👤   <@%s>\n", r.UserID))
+		sb.WriteString(fmt.Sprintf("🆔    `%s`\n", r.ID))
 		if r.Comment != "" {
-			sb.WriteString(fmt.Sprintf("    💬 %s\n", r.Comment))
+			sb.WriteString(fmt.Sprintf("💬   %s\n", r.Comment))
 		} else {
-			sb.WriteString("    💬 なし\n")
+			sb.WriteString("💬   ----\n")
 		}
 	}
-	sb.WriteString("────────────────────────────\n")
+	// sb.WriteString("────────────────────────────\n")
 
 	respondEphemeral(s, i, sb.String())
 }

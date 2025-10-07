@@ -6,6 +6,7 @@
 # Data files
 data/
 *.json
+*.log
 reservations*.json
 
 # Go build artifacts
@@ -46,4 +47,3 @@ build-errors.log
 # OS
 .DS_Store
 Thumbs.db
-*.log
