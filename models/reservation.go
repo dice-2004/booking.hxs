@@ -58,8 +58,9 @@ func (r *Reservation) GetEndDateTime() (time.Time, error) {
 
 // OverlapsWith は他の予約と時間が重複しているかチェックする
 func (r *Reservation) OverlapsWith(other *Reservation) (bool, error) {
-	// キャンセル済みの予約は重複チェックしない
-	if r.Status == StatusCancelled || other.Status == StatusCancelled {
+	// キャンセル済み・完了済みの予約は重複チェックしない
+	if r.Status == StatusCancelled || r.Status == StatusCompleted ||
+		other.Status == StatusCancelled || other.Status == StatusCompleted {
 		return false, nil
 	}
 

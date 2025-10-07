@@ -170,7 +170,7 @@ func handleReserve(s *discordgo.Session, i *discordgo.InteractionCreate, store *
 		"**予約ID:** `%s`\n"+
 		"日時: %s %s - %s\n"+
 		"%s\n\n"+
-		"※予約IDは取り消しや完了の際に必要です。大切に保管してください。",
+		"※予約IDは取り消しや完了の際に必要です。大切に保管してください。\nお忘れの際には、`/my-reservations` コマンドで確認できます。",
 		reservation.ID,
 		formatDate(reservation.Date),
 		reservation.StartTime,
@@ -301,7 +301,15 @@ func handleComplete(s *discordgo.Session, i *discordgo.InteractionCreate, store 
 
 // handleList はすべての予約一覧を表示する
 func handleList(s *discordgo.Session, i *discordgo.InteractionCreate, store *storage.Storage, logger *logging.Logger) {
-	reservations := store.GetAllReservations()
+
+	allReservations := store.GetAllReservations()
+	// 完了・キャンセル済みを除外
+	reservations := make([]*models.Reservation, 0)
+	for _, r := range allReservations {
+		if r.Status != models.StatusCompleted && r.Status != models.StatusCancelled {
+			reservations = append(reservations, r)
+		}
+	}
 
 	if len(reservations) == 0 {
 		respondEphemeral(s, i, "現在、予約はありません。")
@@ -310,25 +318,29 @@ func handleList(s *discordgo.Session, i *discordgo.InteractionCreate, store *sto
 
 	// 日時でソート
 	sort.Slice(reservations, func(a, b int) bool {
-		dateTimeA := reservations[a].Date + " " + reservations[a].StartTime
-		dateTimeB := reservations[b].Date + " " + reservations[b].StartTime
-		return dateTimeA < dateTimeB
+		tA, errA := reservations[a].GetStartDateTime()
+		tB, errB := reservations[b].GetStartDateTime()
+		if errA != nil || errB != nil {
+			// エラー時は元の順序
+			return a < b
+		}
+		return tA.Before(tB)
 	})
 
 	// メッセージを構築
 	var sb strings.Builder
 	sb.WriteString("📋 **すべての予約一覧**\n\n")
-
- 	for _, r := range reservations {
- 		statusEmoji := getStatusEmoji(r.Status)
- 		sb.WriteString(fmt.Sprintf("%s **%s %s - %s**\n", statusEmoji, formatDate(r.Date), r.StartTime, r.EndTime))
- 		sb.WriteString(fmt.Sprintf("   予約者: <@%s>\n", r.UserID))
- 		sb.WriteString(fmt.Sprintf("   予約ID: `%s`\n", r.ID))
- 		if r.Comment != "" {
- 			sb.WriteString(fmt.Sprintf("   コメント: %s\n", r.Comment))
- 		}
- 		sb.WriteString(fmt.Sprintf("   状態: %s\n\n", getStatusText(r.Status)))
- 	}
+	for _, r := range reservations {
+		sb.WriteString("\n")
+		sb.WriteString(fmt.Sprintf("%s    **%s %s - %s**\n", getStatusEmoji(r.Status), formatDate(r.Date), r.StartTime, r.EndTime))
+		sb.WriteString(fmt.Sprintf("👤   <@%s>\n", r.UserID))
+		if r.Comment != "" {
+			sb.WriteString(fmt.Sprintf("💬   %s\n", r.Comment))
+		} else {
+			sb.WriteString("💬   なし\n")
+		}
+	}
+	// sb.WriteString("────────────────────────────\n")
 
 	respondEphemeral(s, i, sb.String())
 }
@@ -336,7 +348,15 @@ func handleList(s *discordgo.Session, i *discordgo.InteractionCreate, store *sto
 // handleMyReservations は自分の予約一覧を表示する
 func handleMyReservations(s *discordgo.Session, i *discordgo.InteractionCreate, store *storage.Storage, logger *logging.Logger) {
 	userID := i.Member.User.ID
-	reservations := store.GetUserReservations(userID)
+
+	allReservations := store.GetUserReservations(userID)
+	// 完了・キャンセル済みを除外
+	reservations := make([]*models.Reservation, 0)
+	for _, r := range allReservations {
+		if r.Status != models.StatusCompleted && r.Status != models.StatusCancelled {
+			reservations = append(reservations, r)
+		}
+	}
 
 	if len(reservations) == 0 {
 		respondEphemeral(s, i, "あなたの予約はありません。")
@@ -345,25 +365,30 @@ func handleMyReservations(s *discordgo.Session, i *discordgo.InteractionCreate, 
 
 	// 日時でソート
 	sort.Slice(reservations, func(a, b int) bool {
-		dateTimeA := reservations[a].Date + " " + reservations[a].StartTime
-		dateTimeB := reservations[b].Date + " " + reservations[b].StartTime
-		return dateTimeA < dateTimeB
+		tA, errA := reservations[a].GetStartDateTime()
+		tB, errB := reservations[b].GetStartDateTime()
+		if errA != nil || errB != nil {
+			// エラー時は元の順序
+			return a < b
+		}
+		return tA.Before(tB)
 	})
 
 	// メッセージを構築
 	var sb strings.Builder
 	sb.WriteString("📋 **あなたの予約一覧**\n\n")
-
- 	for _, r := range reservations {
- 		statusEmoji := getStatusEmoji(r.Status)
- 		sb.WriteString(fmt.Sprintf("%s **%s %s - %s**\n", statusEmoji, formatDate(r.Date), r.StartTime, r.EndTime))
- 		sb.WriteString(fmt.Sprintf("   予約者: <@%s>\n", r.UserID))
- 		sb.WriteString(fmt.Sprintf("   予約ID: `%s`\n", r.ID))
- 		if r.Comment != "" {
- 			sb.WriteString(fmt.Sprintf("   コメント: %s\n", r.Comment))
- 		}
- 		sb.WriteString(fmt.Sprintf("   状態: %s\n\n", getStatusText(r.Status)))
- 	}
+	for _, r := range reservations {
+		sb.WriteString("────────────────────────────\n")
+		sb.WriteString(fmt.Sprintf("%s  **%s %s - %s**\n", getStatusEmoji(r.Status), formatDate(r.Date), r.StartTime, r.EndTime))
+		sb.WriteString(fmt.Sprintf("    👤 <@%s>\n", r.UserID))
+		sb.WriteString(fmt.Sprintf("    予約ID:    `%s`\n", r.ID))
+		if r.Comment != "" {
+			sb.WriteString(fmt.Sprintf("    💬 %s\n", r.Comment))
+		} else {
+			sb.WriteString("    💬 なし\n")
+		}
+	}
+	sb.WriteString("────────────────────────────\n")
 
 	respondEphemeral(s, i, sb.String())
 }
@@ -385,8 +410,15 @@ func formatComment(comment string) string {
 }
 
 func formatDate(date string) string {
-	// YYYY-MM-DD を YYYY/MM/DD に変換
-	return strings.ReplaceAll(date, "-", "/")
+	// YYYY-MM-DD を YYYY/MM/DD に変換し、一桁の場合はゼロ埋め
+	parts := strings.Split(date, "-")
+	if len(parts) != 3 {
+		return date
+	}
+	year := parts[0]
+	month := fmt.Sprintf("%02s", parts[1])
+	day := fmt.Sprintf("%02s", parts[2])
+	return fmt.Sprintf("%s/%s/%s", year, month, day)
 }
 
 func getStatusEmoji(status models.ReservationStatus) string {
