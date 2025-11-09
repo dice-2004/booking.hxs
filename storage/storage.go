@@ -50,8 +50,8 @@ func (s *Storage) Load() error {
 
 // Save は予約データをファイルに保存する
 func (s *Storage) Save() error {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	data, err := json.MarshalIndent(s.Reservations, "", "  ")
 	if err != nil {
@@ -193,6 +193,17 @@ func (s *Storage) AutoCompleteExpiredReservations() (int, error) {
 		}
 	}
 
+	// 変更があった場合は即座に保存
+	if count > 0 {
+		data, err := json.MarshalIndent(s.Reservations, "", "  ")
+		if err != nil {
+			return count, err
+		}
+		if err := os.WriteFile(dataFilePath, data, 0644); err != nil {
+			return count, err
+		}
+	}
+
 	return count, nil
 }
 
@@ -223,6 +234,17 @@ func (s *Storage) CleanupOldReservations(retentionDays int) (int, error) {
 	// 削除を実行
 	for _, id := range idsToDelete {
 		delete(s.Reservations, id)
+	}
+
+	// 削除があった場合は即座に保存
+	if count > 0 {
+		data, err := json.MarshalIndent(s.Reservations, "", "  ")
+		if err != nil {
+			return count, err
+		}
+		if err := os.WriteFile(dataFilePath, data, 0644); err != nil {
+			return count, err
+		}
 	}
 
 	return count, nil

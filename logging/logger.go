@@ -11,14 +11,24 @@ import (
 
 // CommandLog はコマンド実行ログの構造体
 type CommandLog struct {
-	Timestamp   time.Time `json:"timestamp"`
-	Command     string    `json:"command"`
-	UserID      string    `json:"user_id"`
-	Username    string    `json:"username"`
-	ChannelID   string    `json:"channel_id"`
-	Success     bool      `json:"success"`
-	Error       string    `json:"error,omitempty"`
-	Parameters  map[string]interface{} `json:"parameters,omitempty"`
+	Timestamp  time.Time              `json:"timestamp"`
+	Command    string                 `json:"command"`
+	UserID     string                 `json:"user_id"`
+	Username   string                 `json:"username"`
+	ChannelID  string                 `json:"channel_id"`
+	Success    bool                   `json:"success"`
+	Error      string                 `json:"error,omitempty"`
+	Parameters map[string]interface{} `json:"parameters,omitempty"`
+}
+
+// ErrorLog はエラーログの構造体
+type ErrorLog struct {
+	Timestamp time.Time              `json:"timestamp"`
+	Level     string                 `json:"level"`  // ERROR, FATAL
+	Source    string                 `json:"source"` // 関数名やモジュール名
+	Message   string                 `json:"message"`
+	Error     string                 `json:"error,omitempty"`
+	Details   map[string]interface{} `json:"details,omitempty"`
 }
 
 // CommandStats はコマンド統計の構造体
@@ -32,21 +42,22 @@ type CommandStats struct {
 
 // MonthlyStat は月別統計の構造体
 type MonthlyStat struct {
-	Year           int            `json:"year"`
-	Month          int            `json:"month"`
-	TotalCommands  int            `json:"total_commands"`
-	CommandCounts  map[string]int `json:"command_counts"`
-	UserCounts     map[string]int `json:"user_counts"`
+	Year          int            `json:"year"`
+	Month         int            `json:"month"`
+	TotalCommands int            `json:"total_commands"`
+	CommandCounts map[string]int `json:"command_counts"`
+	UserCounts    map[string]int `json:"user_counts"`
 }
 
 // Logger はログシステムのメイン構造体
 type Logger struct {
-	logDir        string
-	statsFile     string
-	currentMonth  string
-	monthlyFile   string
-	stats         *CommandStats
-	mutex         sync.RWMutex
+	logDir       string
+	statsFile    string
+	currentMonth string
+	monthlyFile  string
+	errorFile    string
+	stats        *CommandStats
+	mutex        sync.RWMutex
 }
 
 // NewLogger は新しいロガーを作成する
@@ -58,12 +69,14 @@ func NewLogger(logDir string) *Logger {
 	statsFile := filepath.Join(logDir, "command_stats.json")
 	currentMonth := time.Now().Format("2006-01")
 	monthlyFile := filepath.Join(logDir, fmt.Sprintf("commands_%s.log", currentMonth))
+	errorFile := filepath.Join(logDir, fmt.Sprintf("errors_%s.log", currentMonth))
 
 	logger := &Logger{
 		logDir:       logDir,
 		statsFile:    statsFile,
 		currentMonth: currentMonth,
 		monthlyFile:  monthlyFile,
+		errorFile:    errorFile,
 		stats: &CommandStats{
 			TotalCommands: 0,
 			CommandCounts: make(map[string]int),
@@ -160,10 +173,60 @@ func (l *Logger) updateStats(entry CommandLog) {
 	l.saveStats()
 }
 
+// LogError はエラーをログに記録する
+func (l *Logger) LogError(level, source, message string, err error, details map[string]interface{}) {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+
+	// 月が変わった場合はローテーション
+	currentMonth := time.Now().Format("2006-01")
+	if l.currentMonth != currentMonth {
+		l.rotateLogs()
+		l.currentMonth = currentMonth
+	}
+
+	// エラーログエントリを作成
+	errorLog := ErrorLog{
+		Timestamp: time.Now(),
+		Level:     level,
+		Source:    source,
+		Message:   message,
+		Details:   details,
+	}
+
+	if err != nil {
+		errorLog.Error = err.Error()
+	}
+
+	// エラーログファイルに書き込み
+	l.writeToErrorLog(errorLog)
+}
+
+// writeToErrorLog はエラーログファイルにログエントリを書き込む
+func (l *Logger) writeToErrorLog(entry ErrorLog) {
+	file, err := os.OpenFile(l.errorFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		fmt.Printf("Failed to open error log file: %v\n", err)
+		return
+	}
+	defer file.Close()
+
+	// JSON形式でログを書き込み
+	jsonData, err := json.Marshal(entry)
+	if err != nil {
+		fmt.Printf("Failed to marshal error log entry: %v\n", err)
+		return
+	}
+
+	file.Write(jsonData)
+	file.WriteString("\n")
+}
+
 // rotateLogs は月次ログローテーションを実行する
 func (l *Logger) rotateLogs() {
 	// 新しい月次ファイル名を設定
 	l.monthlyFile = filepath.Join(l.logDir, fmt.Sprintf("commands_%s.log", l.currentMonth))
+	l.errorFile = filepath.Join(l.logDir, fmt.Sprintf("errors_%s.log", l.currentMonth))
 }
 
 // loadStats は既存の統計ファイルを読み込む
@@ -231,16 +294,29 @@ func (l *Logger) CleanupOldLogs() {
 			continue
 		}
 
-		// ファイル名から日付を解析（commands_YYYY-MM.log形式）
-		if len(file.Name()) >= 20 && file.Name()[:9] == "commands_" && file.Name()[19:] == ".log" {
-			dateStr := file.Name()[9:19] // YYYY-MM部分
+		fileName := file.Name()
+		var dateStr string
+		var isLogFile bool
+
+		// commands_YYYY-MM.log または errors_YYYY-MM.log 形式をチェック
+		if len(fileName) >= 20 && fileName[len(fileName)-4:] == ".log" {
+			if fileName[:9] == "commands_" {
+				dateStr = fileName[9 : len(fileName)-4] // YYYY-MM部分を抽出
+				isLogFile = true
+			} else if fileName[:7] == "errors_" {
+				dateStr = fileName[7 : len(fileName)-4] // YYYY-MM部分を抽出
+				isLogFile = true
+			}
+		}
+
+		if isLogFile {
 			if fileDate, err := time.Parse("2006-01", dateStr); err == nil {
 				if fileDate.Before(cutoffDate) {
-					filePath := filepath.Join(l.logDir, file.Name())
+					filePath := filepath.Join(l.logDir, fileName)
 					if err := os.Remove(filePath); err != nil {
 						fmt.Printf("Failed to remove old log file %s: %v\n", filePath, err)
 					} else {
-						fmt.Printf("Removed old log file: %s\n", filePath)
+						fmt.Printf("Removed old log file: %s\n", fileName)
 					}
 				}
 			}

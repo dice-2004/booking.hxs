@@ -171,6 +171,10 @@ func handleReserve(s *discordgo.Session, i *discordgo.InteractionCreate, store *
 	overlappingReservation, err := store.CheckOverlap(reservation)
 	if err != nil {
 		respondError(s, i, "予約の重複チェックに失敗しました")
+		logger.LogError("ERROR", "handlers.handleReserve", "Failed to check overlap", err, map[string]interface{}{
+			"user_id": userID,
+			"date":    date,
+		})
 		return
 	}
 
@@ -192,11 +196,19 @@ func handleReserve(s *discordgo.Session, i *discordgo.InteractionCreate, store *
 	// 予約を保存
 	if err := store.AddReservation(reservation); err != nil {
 		respondError(s, i, "予約の保存に失敗しました")
+		logger.LogError("ERROR", "handlers.handleReserve", "Failed to add reservation", err, map[string]interface{}{
+			"user_id":        userID,
+			"reservation_id": reservation.ID,
+		})
 		return
 	}
 
 	if err := store.Save(); err != nil {
 		respondError(s, i, "予約の保存に失敗しました")
+		logger.LogError("ERROR", "handlers.handleReserve", "Failed to save reservations", err, map[string]interface{}{
+			"user_id":        userID,
+			"reservation_id": reservation.ID,
+		})
 		return
 	}
 
@@ -257,11 +269,17 @@ func handleCancel(s *discordgo.Session, i *discordgo.InteractionCreate, store *s
 
 	if err := store.UpdateReservation(reservation); err != nil {
 		respondError(s, i, "予約の更新に失敗しました")
+		logger.LogError("ERROR", "handlers.handleCancel", "Failed to update reservation", err, map[string]interface{}{
+			"reservation_id": reservationID,
+		})
 		return
 	}
 
 	if err := store.Save(); err != nil {
 		respondError(s, i, "予約の保存に失敗しました")
+		logger.LogError("ERROR", "handlers.handleCancel", "Failed to save reservations", err, map[string]interface{}{
+			"reservation_id": reservationID,
+		})
 		return
 	}
 
@@ -311,11 +329,17 @@ func handleComplete(s *discordgo.Session, i *discordgo.InteractionCreate, store 
 
 	if err := store.UpdateReservation(reservation); err != nil {
 		respondError(s, i, "予約の更新に失敗しました")
+		logger.LogError("ERROR", "handlers.handleComplete", "Failed to update reservation", err, map[string]interface{}{
+			"reservation_id": reservationID,
+		})
 		return
 	}
 
 	if err := store.Save(); err != nil {
 		respondError(s, i, "予約の保存に失敗しました")
+		logger.LogError("ERROR", "handlers.handleComplete", "Failed to save reservations", err, map[string]interface{}{
+			"reservation_id": reservationID,
+		})
 		return
 	}
 

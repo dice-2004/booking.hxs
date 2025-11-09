@@ -91,9 +91,10 @@ func main() {
 		defer ticker.Stop()
 		for range ticker.C {
 			if err := store.Save(); err != nil {
-				log.Printf("Failed to save reservations: %v", err)
+				log.Printf("❌ Failed to save reservations: %v", err)
+				logger.LogError("ERROR", "main.periodicSave", "Failed to save reservations", err, nil)
 			} else {
-				log.Println("Reservations saved successfully")
+				log.Println("💾 Reservations saved successfully")
 			}
 		}
 	}()
@@ -132,19 +133,15 @@ func main() {
 			// 終了時刻が過ぎたpending予約を自動完了
 			completedCount, err := store.AutoCompleteExpiredReservations()
 			if err != nil {
-				log.Printf("Failed to auto-complete expired reservations: %v", err)
+				log.Printf("❌ Failed to auto-complete expired reservations: %v", err)
+				logger.LogError("ERROR", "main.autoComplete", "Failed to auto-complete expired reservations", err, nil)
 			} else if completedCount > 0 {
-				log.Printf("Auto-completed %d expired reservation(s)", completedCount)
-				if err := store.Save(); err != nil {
-					log.Printf("Failed to save after auto-completion: %v", err)
-				}
+				log.Printf("✅ Auto-completed %d expired reservation(s) and saved", completedCount)
 			} else {
-				log.Println("Auto-complete check completed: no expired reservations found")
+				log.Println("✓ Auto-complete check completed: no expired reservations found")
 			}
 		}
-	}()
-
-	// 定期的に古い予約データをクリーンアップ（毎日午前3時10分）
+	}() // 定期的に古い予約データをクリーンアップ（毎日午前3時10分）
 	go func() {
 		for {
 			now := time.Now()
@@ -169,29 +166,28 @@ func main() {
 			// 古い完了済み・キャンセル済み予約を削除（30日以上前）
 			deletedCount, err := store.CleanupOldReservations(30)
 			if err != nil {
-				log.Printf("Failed to cleanup old reservations: %v", err)
+				log.Printf("❌ Failed to cleanup old reservations: %v", err)
+				logger.LogError("ERROR", "main.cleanup", "Failed to cleanup old reservations", err, map[string]interface{}{
+					"retention_days": 30,
+				})
 			} else if deletedCount > 0 {
-				log.Printf("Cleaned up %d old reservation(s)", deletedCount)
-				if err := store.Save(); err != nil {
-					log.Printf("Failed to save after cleanup: %v", err)
-				}
+				log.Printf("🗑️  Cleaned up %d old reservation(s) and saved", deletedCount)
 			} else {
-				log.Println("Cleanup check completed: no old reservations to remove")
+				log.Println("✓ Cleanup check completed: no old reservations to remove")
 			}
 		}
-	}()
-
-	// シグナルを待つ
+	}() // シグナルを待つ
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-sc
 
 	// 終了時にデータを保存
-	log.Println("Saving reservations before exit...")
+	log.Println("💾 Saving reservations before exit...")
 	if err := store.Save(); err != nil {
-		log.Printf("Failed to save reservations: %v", err)
+		log.Printf("❌ Failed to save reservations: %v", err)
+		logger.LogError("ERROR", "main.shutdown", "Failed to save reservations on shutdown", err, nil)
 	} else {
-		log.Println("Reservations saved successfully")
+		log.Println("✅ Reservations saved successfully")
 	}
 
 	// 統計情報を表示

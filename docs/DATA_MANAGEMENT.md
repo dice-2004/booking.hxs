@@ -136,12 +136,14 @@ Next cleanup scheduled at: 2025-11-10 03:10:00 (in 8h55m32s)
 ```
 logs/
 ├── command_stats.json          # コマンド統計（JSON）
-├── commands_2025-11.log        # 2025年11月のログ
-├── commands_2025-12.log        # 2025年12月のログ
+├── commands_2025-11.log        # 2025年11月のコマンドログ
+├── commands_2025-12.log        # 2025年12月のコマンドログ
+├── errors_2025-11.log          # 2025年11月のエラーログ
+├── errors_2025-12.log          # 2025年12月のエラーログ
 └── ...
 ```
 
-### コマンドログ
+### 1. コマンドログ
 
 **ファイル名形式**: `commands_YYYY-MM.log`
 
@@ -164,7 +166,33 @@ logs/
 }
 ```
 
-### 統計ファイル
+### 2. エラーログ（NEW）
+
+**ファイル名形式**: `errors_YYYY-MM.log`
+
+**内容**: システムエラーとコマンドエラーの詳細
+
+```json
+{
+  "timestamp": "2025-11-09T14:35:00Z",
+  "level": "ERROR",
+  "source": "handlers.handleReserve",
+  "message": "Failed to save reservations",
+  "error": "write error: disk full",
+  "details": {
+    "user_id": "123456789012345678",
+    "reservation_id": "a1b2c3d4e5f6g7h8"
+  }
+}
+```
+
+**記録されるエラー:**
+- 予約データの保存/読み込みエラー
+- データベース操作エラー
+- 自動完了/クリーンアップエラー
+- コマンド実行時のエラー
+
+### 3. 統計ファイル
 
 **ファイル名**: `command_stats.json`
 
@@ -199,6 +227,25 @@ logs/
 }
 ```
 
+### 4. システムログ（標準出力）
+
+システムイベントは標準出力に出力されます：
+
+**出力例:**
+```
+💾 Reservations saved successfully
+✅ Auto-completed 3 expired reservation(s) and saved
+🗑️  Cleaned up 5 old reservation(s) and saved
+❌ Failed to save reservations: write error
+```
+
+**記録されるイベント:**
+- 定期保存の成功/失敗
+- 自動完了の実行結果
+- クリーンアップの実行結果
+- Bot起動/終了
+
+
 ### ログローテーション
 
 **自動ローテーション**:
@@ -206,30 +253,40 @@ logs/
 - 古いログファイルは保持される
 
 **古いログの削除**:
-- **1か月以上前**のログファイルを自動削除
+- **1か月以上前**のログファイルを自動削除（`commands_*.log` と `errors_*.log`）
 - 実行頻度: **24時間ごと**
 - ディスク容量を節約
 
 ### ログの確認方法
 
 ```bash
-# 現在の月のログを確認
+# コマンドログを確認
 cat logs/commands_2025-11.log
+
+# エラーログを確認
+cat logs/errors_2025-11.log
 
 # リアルタイムでログを監視
 tail -f logs/commands_2025-11.log
+tail -f logs/errors_2025-11.log
 
 # 特定のコマンドのログを検索
 grep '"command":"reserve"' logs/commands_2025-11.log
 
-# エラーログのみを表示
+# コマンドエラーのみを表示
 grep '"success":false' logs/commands_2025-11.log
+
+# エラーログから特定のエラーを検索
+grep '"level":"ERROR"' logs/errors_2025-11.log
 
 # 統計情報を確認
 cat logs/command_stats.json | jq .
 
 # 総コマンド数を確認
 cat logs/command_stats.json | jq '.total_commands'
+
+# エラー発生件数をカウント
+wc -l logs/errors_2025-11.log
 ```
 
 ---
