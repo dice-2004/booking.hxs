@@ -74,7 +74,7 @@ make run
 ## 🔧 技術スタック
 
 - **言語**: Go 1.21+
-- **ライブラリ**: 
+- **ライブラリ**:
   - [discordgo](https://github.com/bwmarrin/discordgo) - Discord API
   - [godotenv](https://github.com/joho/godotenv) - 環境変数管理
 - **データ保存**: JSON ファイル
@@ -182,8 +182,8 @@ make clean                  # クリーンアップ
 
 ---
 
-**作成**: 2025年  
-**バージョン**: v1.2.0  
+**作成**: 2025年
+**バージョン**: v1.2.0
 **Go**: 1.21+
 
 

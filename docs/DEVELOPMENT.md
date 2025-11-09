@@ -30,9 +30,9 @@
 
 ### プロジェクトの独立性
 
-✅ **プロジェクト固有の依存関係** - `go.mod` で管理  
-✅ **環境分離** - 開発/本番環境を分離  
-✅ **簡単なセットアップ** - 1コマンドで完了  
+✅ **プロジェクト固有の依存関係** - `go.mod` で管理
+✅ **環境分離** - 開発/本番環境を分離
+✅ **簡単なセットアップ** - 1コマンドで完了
 ✅ **自動化** - Makefileで一貫したワークフロー
 
 ---
@@ -337,10 +337,10 @@ func handleYourNewCommand(s *discordgo.Session, i *discordgo.InteractionCreate, 
     // コマンドの処理
     options := i.ApplicationCommandData().Options
     param1 := options[0].StringValue()
-    
+
     // レスポンスを返す
     respondEphemeral(s, i, "処理が完了しました")
-    
+
     // ログに記録
     logger.LogCommand("your-new-command", i.Member.User.ID, getDisplayName(i.Member), i.ChannelID, true, "", map[string]interface{}{"param1": param1})
 }
@@ -399,7 +399,7 @@ type Reservation struct {
     Status      ReservationStatus  `json:"status"`
     CreatedAt   time.Time          `json:"created_at"`
     UpdatedAt   time.Time          `json:"updated_at"`
-    
+
     // 新しいフィールドを追加
     Priority    string             `json:"priority"`    // 優先度
     Tags        []string           `json:"tags"`        // タグ
@@ -495,11 +495,11 @@ make test
 
 開発環境のポイント：
 
-✅ **Go Modules** - プロジェクト固有の依存関係管理  
-✅ **環境分離** - 開発/本番環境を簡単に切り替え  
-✅ **自動化** - Makefileで一貫したワークフロー  
-✅ **ホットリロード** - 開発効率を向上  
-✅ **コード品質** - fmt, vet, testで品質維持  
+✅ **Go Modules** - プロジェクト固有の依存関係管理
+✅ **環境分離** - 開発/本番環境を簡単に切り替え
+✅ **自動化** - Makefileで一貫したワークフロー
+✅ **ホットリロード** - 開発効率を向上
+✅ **コード品質** - fmt, vet, testで品質維持
 ✅ **拡張性** - 新しい機能を簡単に追加
 
 ---
