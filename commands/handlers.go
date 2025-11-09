@@ -148,8 +148,8 @@ func handleReserve(s *discordgo.Session, i *discordgo.InteractionCreate, store *
 		msg := fmt.Sprintf("❌ **予約できませんでした**\n\n"+
 			"指定された時間は既に予約されています。\n\n"+
 			"**重複している予約:**\n"+
-			"予約者: <@%s>\n"+
-			"日時: %s %s - %s",
+			"👤   <@%s>\n"+
+			"📅   %s %s - %s",
 			overlappingReservation.UserID,
 			formatDate(overlappingReservation.Date),
 			overlappingReservation.StartTime,
@@ -173,7 +173,7 @@ func handleReserve(s *discordgo.Session, i *discordgo.InteractionCreate, store *
 	// 予約者にはIDを含めたメッセージを送信（Ephemeral）
 	ephemeralMsg := fmt.Sprintf("✅ **予約が完了しました！**\n\n"+
 		"**予約ID:** `%s`\n"+
-		"日時: %s %s - %s\n"+
+		"📅   %s %s - %s\n"+
 		"%s\n\n"+
 		"※予約IDは取り消しや完了の際に必要です。大切に保管してください。\nお忘れの際には、`/my-reservations` コマンドで確認できます。",
 		reservation.ID,
@@ -185,9 +185,9 @@ func handleReserve(s *discordgo.Session, i *discordgo.InteractionCreate, store *
 	respondEphemeral(s, i, ephemeralMsg)
 
 	// チャンネルの全員に予約情報を通知（予約IDは含めない）
-	publicMsg := fmt.Sprintf("📅 **新しい予約が追加されました**\n\n"+
-		"予約者: <@%s>\n"+
-		"日時: %s %s - %s\n"+
+	publicMsg := fmt.Sprintf("🟡 **新しい予約が追加されました**\n\n"+
+		"👤   <@%s>\n"+
+		"📅   %s %s - %s\n"+
 		"%s",
 		reservation.UserID,
 		formatDate(reservation.Date),
@@ -238,9 +238,9 @@ func handleCancel(s *discordgo.Session, i *discordgo.InteractionCreate, store *s
 	respondEphemeral(s, i, "✅ 予約を取り消しました")
 
 	// チャンネルの全員に通知
-	msg := fmt.Sprintf("🚫 **予約が取り消されました**\n\n"+
-		"予約者: <@%s>\n"+
-		"日時: %s %s - %s\n"+
+	msg := fmt.Sprintf("🔴 **予約が取り消されました**\n\n"+
+		"👤   <@%s>\n"+
+		"📅   %s %s - %s\n"+
 		"%s",
 		reservation.UserID,
 		formatDate(reservation.Date),
@@ -291,9 +291,9 @@ func handleComplete(s *discordgo.Session, i *discordgo.InteractionCreate, store 
 	respondEphemeral(s, i, "✅ 予約を完了にしました")
 
 	// チャンネルの全員に通知
-	msg := fmt.Sprintf("✨ **予約が完了しました**\n\n"+
-		"予約者: <@%s>\n"+
-		"日時: %s %s - %s\n"+
+	msg := fmt.Sprintf("🔴 **予約が終わりました**\n\n"+
+		"👤   <@%s>\n"+
+		"📅   %s %s - %s\n"+
 		"%s",
 		reservation.UserID,
 		formatDate(reservation.Date),
@@ -334,7 +334,7 @@ func handleList(s *discordgo.Session, i *discordgo.InteractionCreate, store *sto
 
 	// メッセージを構築
 	var sb strings.Builder
-	sb.WriteString("📋 **すべての予約一覧**\n\n")
+	sb.WriteString("🔵 **すべての予約一覧**\n\n")
 	for _, r := range reservations {
 		sb.WriteString("\n")
 		sb.WriteString(fmt.Sprintf("%s    **%s %s - %s**\n", getStatusEmoji(r.Status), formatDate(r.Date), r.StartTime, r.EndTime))
@@ -381,7 +381,7 @@ func handleMyReservations(s *discordgo.Session, i *discordgo.InteractionCreate, 
 
 	// メッセージを構築
 	var sb strings.Builder
-	sb.WriteString("📋 **あなたの予約一覧**\n\n")
+	sb.WriteString("🔵 **あなたの予約一覧**\n\n")
 	for _, r := range reservations {
 		sb.WriteString("\n")
 		sb.WriteString(fmt.Sprintf("%s    **%s %s - %s**\n", getStatusEmoji(r.Status), formatDate(r.Date), r.StartTime, r.EndTime))

@@ -1,85 +1,54 @@
-# 開発環境管理ガイド
+# 💻 開発者ガイド
 
-このドキュメントでは、Go言語プロジェクトを「仮想環境のように」管理する方法を説明します。
+このドキュメントでは、開発環境のセットアップ、カスタマイズ、拡張方法について説明します。
 
-## 🎯 概要
+## 📑 目次
 
-Pythonの仮想環境（venv）のように、このプロジェクトは以下の特徴を持っています：
+- [開発環境の管理](#開発環境の管理)
+- [環境の切り替え](#環境の切り替え)
+- [依存関係の管理](#依存関係の管理)
+- [開発ワークフロー](#開発ワークフロー)
+- [ホットリロード](#ホットリロード)
+- [コードの品質管理](#コードの品質管理)
+- [プロジェクト構造](#プロジェクト構造)
+- [カスタマイズ](#カスタマイズ)
 
-- ✅ **プロジェクト独立性**: `go.mod`でプロジェクト固有の依存関係を管理
-- ✅ **環境分離**: 開発環境と本番環境を分離
-- ✅ **簡単なセットアップ**: 1コマンドでセットアップ完了
-- ✅ **依存関係の明示**: `go.mod`と`go.sum`で完全に管理
-- ✅ **自動化されたワークフロー**: Makefileで一貫したコマンド
+---
 
-## 📦 依存関係の管理
+## 開発環境の管理
 
-### go.modとgo.sum
+### Go Modulesによる依存関係管理
 
-Goでは`go.mod`と`go.sum`ファイルで依存関係を管理します：
+このプロジェクトは **Go Modules** を使用しています。Pythonの仮想環境のように、プロジェクト固有の依存関係を管理します。
 
-- **go.mod**: プロジェクトの依存関係を定義
-- **go.sum**: 依存関係のチェックサムを記録（セキュリティ）
+#### 主要ファイル
 
-これらはPythonの`requirements.txt`やNode.jsの`package.json`に相当します。
+| ファイル | 説明 | Pythonの相当物 |
+|---------|------|---------------|
+| `go.mod` | 依存関係の定義 | `requirements.txt` |
+| `go.sum` | チェックサム | `requirements.txt` のハッシュ |
 
-### 依存関係の操作
+### プロジェクトの独立性
 
-#### インストール
-```bash
-# 推奨: Makefileを使用
-make install
+✅ **プロジェクト固有の依存関係** - `go.mod` で管理  
+✅ **環境分離** - 開発/本番環境を分離  
+✅ **簡単なセットアップ** - 1コマンドで完了  
+✅ **自動化** - Makefileで一貫したワークフロー
 
-# または: スクリプトを使用
-./manage_deps.sh install
+---
 
-# または: 直接実行
-go mod download
-go mod tidy
-```
+## 環境の切り替え
 
-#### 更新
-```bash
-# すべての依存関係を最新版に更新
-./manage_deps.sh update
+### 環境設定ファイル
 
-# または
-go get -u ./...
-go mod tidy
-```
+| ファイル | 説明 | Git管理 |
+|---------|------|---------|
+| `.env.example` | テンプレート | ✅ Yes |
+| `.env.development` | 開発環境用 | ✅ Yes |
+| `.env.production` | 本番環境用 | ✅ Yes |
+| `.env` | 現在使用中 | ❌ No (.gitignore) |
 
-#### 確認
-```bash
-# 依存関係の一覧
-./manage_deps.sh list
-
-# 依存関係のグラフ
-./manage_deps.sh graph
-
-# なぜこの依存関係が必要か
-./manage_deps.sh why github.com/bwmarrin/discordgo
-```
-
-#### クリーンアップ
-```bash
-# キャッシュをクリア
-./manage_deps.sh clean
-
-# または
-go clean -modcache
-```
-
-## 🔄 環境の切り替え
-
-### 環境ファイル
-
-3つの環境設定ファイルがあります：
-
-1. **`.env.example`** - テンプレート（Git管理対象）
-2. **`.env.development`** - 開発環境用
-3. **`.env.production`** - 本番環境用
-
-### 環境の切り替え方法
+### 環境切り替えスクリプト
 
 ```bash
 # 開発環境に切り替え
@@ -87,16 +56,20 @@ go clean -modcache
 
 # 本番環境に切り替え
 ./switch_env.sh production
+
+# 現在の環境を確認
+./switch_env.sh status
 ```
 
-このスクリプトは：
-1. 現在の`.env`をバックアップ（`.env.backup`）
-2. 指定された環境ファイルを`.env`にコピー
+### スクリプトの動作
+
+1. 現在の `.env` を `.env.backup` にバックアップ
+2. 指定された環境ファイルを `.env` にコピー
 3. 現在の環境変数を表示
 
 ### 環境ごとの設定例
 
-**開発環境（.env.development）:**
+**開発環境（.env.development）**
 ```env
 DISCORD_TOKEN=dev_token_here
 GUILD_ID=dev_server_id
@@ -105,7 +78,7 @@ ENV=development
 DATA_FILE=reservations_dev.json
 ```
 
-**本番環境（.env.production）:**
+**本番環境（.env.production）**
 ```env
 DISCORD_TOKEN=prod_token_here
 GUILD_ID=
@@ -114,9 +87,64 @@ ENV=production
 DATA_FILE=reservations.json
 ```
 
-## 🛠️ Makefileによる自動化
+---
 
-### 利用可能なコマンド
+## 依存関係の管理
+
+### 依存関係管理スクリプト
+
+`manage_deps.sh` スクリプトで依存関係を管理できます。
+
+```bash
+# インストール
+./manage_deps.sh install
+
+# 更新
+./manage_deps.sh update
+
+# 一覧表示
+./manage_deps.sh list
+
+# 依存関係のグラフ
+./manage_deps.sh graph
+
+# 特定の依存関係を調査
+./manage_deps.sh why github.com/bwmarrin/discordgo
+
+# クリーンアップ
+./manage_deps.sh clean
+
+# ヘルプ
+./manage_deps.sh help
+```
+
+### Go Modulesコマンド
+
+```bash
+# 依存関係をダウンロード
+go mod download
+
+# 不要な依存関係を削除
+go mod tidy
+
+# 依存関係を最新版に更新
+go get -u ./...
+
+# キャッシュをクリア
+go clean -modcache
+
+# 依存関係の一覧
+go list -m all
+
+# 依存関係のグラフ
+go mod graph
+```
+
+---
+
+## 開発ワークフロー
+
+### Makefileコマンド一覧
 
 ```bash
 make help          # すべてのコマンドを表示
@@ -135,18 +163,349 @@ make test          # テスト実行
 make all           # check + build
 ```
 
-### Makefileの利点
+### 日常の開発フロー
 
-- **一貫性**: チーム全員が同じコマンドを使用
-- **自動化**: 複数のコマンドを1つにまとめる
-- **ドキュメント**: コマンドが自己文書化される
-- **効率**: タイプ量が減る
+```bash
+# 1. コードを編集
+vi commands/handlers.go
 
-## 🔥 ホットリロード（開発効率化）
+# 2. フォーマット＋静的解析
+make check
 
-開発中にファイルの変更を自動検知して再起動：
+# 3. 実行して動作確認
+make run
 
-### セットアップ
+# 4. ビルドして配布用バイナリ作成
+make build
+```
+
+---
+
+## ホットリロード
+
+開発時に、ファイルの変更を自動検知して再起動する機能を利用できます。
+
+### airのインストール
+
+```bash
+go install github.com/cosmtrek/air@latest
+```
+
+### ホットリロードで起動
+
+```bash
+make dev
+
+# または
+air
+```
+
+### 設定ファイル
+
+`.air.toml` に設定があります：
+
+```toml
+[build]
+  cmd = "go build -o ./tmp/main ."
+  bin = "tmp/main"
+  include_ext = ["go", "tpl", "tmpl", "html"]
+  exclude_dir = ["tmp", "vendor", "bin"]
+```
+
+---
+
+## コードの品質管理
+
+### コードフォーマット
+
+```bash
+# フォーマット
+make fmt
+
+# または
+go fmt ./...
+```
+
+### 静的解析
+
+```bash
+# 静的解析
+make vet
+
+# または
+go vet ./...
+```
+
+### フォーマット＋静的解析
+
+```bash
+make check
+```
+
+### テストの実行
+
+```bash
+make test
+
+# または
+go test ./...
+```
+
+---
+
+## プロジェクト構造
+
+```
+booking.hxs/
+├── main.go                    # エントリーポイント
+├── go.mod / go.sum            # 依存関係管理
+│
+├── commands/                  # コマンドハンドラー
+│   └── handlers.go            # インタラクション処理
+│
+├── models/                    # データモデル
+│   └── reservation.go         # 予約データ構造
+│
+├── storage/                   # データ永続化
+│   └── storage.go             # JSON読み書き、クリーンアップ
+│
+├── logging/                   # ログ管理
+│   └── logger.go              # コマンドログ、統計
+│
+├── bin/                       # ビルド成果物
+├── logs/                      # ログファイル（自動生成）
+│
+├── config/                    # 設定ファイル
+│   ├── .env.example           # 環境変数テンプレート
+│   ├── .env.development       # 開発環境
+│   ├── .env.production        # 本番環境
+│   ├── hxs-reservation-bot.service  # systemdサービス
+│   └── .air.toml              # ホットリロード設定
+│
+├── docs/                      # ドキュメント
+│   ├── SETUP.md               # 起動ガイド
+│   ├── COMMANDS.md            # コマンドリファレンス
+│   ├── DATA_MANAGEMENT.md     # データ管理
+│   ├── SYSTEMD.md             # systemdセットアップ
+│   ├── DEVELOPMENT.md         # 開発者ガイド（本ファイル）
+│   └── CHANGELOG.md           # 変更履歴
+│
+├── Makefile                   # ビルドタスク
+├── setup.sh                   # セットアップスクリプト
+├── manage_deps.sh             # 依存関係管理
+└── switch_env.sh              # 環境切り替え
+```
+
+---
+
+## カスタマイズ
+
+### 新しいコマンドを追加
+
+#### 1. コマンド定義を追加（main.go）
+
+```go
+commands := []*discordgo.ApplicationCommand{
+    // ... 既存のコマンド
+    {
+        Name:        "your-new-command",
+        Description: "コマンドの説明",
+        Options: []*discordgo.ApplicationCommandOption{
+            {
+                Type:        discordgo.ApplicationCommandOptionString,
+                Name:        "param1",
+                Description: "パラメータの説明",
+                Required:    true,
+            },
+        },
+    },
+}
+```
+
+#### 2. ハンドラーを追加（commands/handlers.go）
+
+```go
+func HandleInteraction(...) {
+    switch commandName {
+    // ... 既存のケース
+    case "your-new-command":
+        handleYourNewCommand(s, i, store, logger)
+    }
+}
+
+func handleYourNewCommand(s *discordgo.Session, i *discordgo.InteractionCreate, store *storage.Storage, logger *logging.Logger) {
+    // コマンドの処理
+    options := i.ApplicationCommandData().Options
+    param1 := options[0].StringValue()
+    
+    // レスポンスを返す
+    respondEphemeral(s, i, "処理が完了しました")
+    
+    // ログに記録
+    logger.LogCommand("your-new-command", i.Member.User.ID, getDisplayName(i.Member), i.ChannelID, true, "", map[string]interface{}{"param1": param1})
+}
+```
+
+#### 3. 再ビルド＆再起動
+
+```bash
+make build
+make run
+```
+
+---
+
+### クリーンアップタイミングのカスタマイズ
+
+#### 保持期間の変更
+
+`main.go` の以下の行を変更：
+
+```go
+// デフォルト: 30日
+deletedCount, err := store.CleanupOldReservations(30)
+
+// カスタマイズ例: 60日
+deletedCount, err := store.CleanupOldReservations(60)
+```
+
+#### 実行時刻の変更
+
+```go
+// デフォルト: 午前3時
+next := time.Date(now.Year(), now.Month(), now.Day(), 3, 0, 0, 0, now.Location())
+
+// カスタマイズ例: 午前2時
+next := time.Date(now.Year(), now.Month(), now.Day(), 2, 0, 0, 0, now.Location())
+```
+
+---
+
+### データ構造の拡張
+
+#### 予約モデルにフィールドを追加
+
+`models/reservation.go` を編集：
+
+```go
+type Reservation struct {
+    ID          string             `json:"id"`
+    UserID      string             `json:"user_id"`
+    Username    string             `json:"username"`
+    Date        string             `json:"date"`
+    StartTime   string             `json:"start_time"`
+    EndTime     string             `json:"end_time"`
+    Comment     string             `json:"comment"`
+    Status      ReservationStatus  `json:"status"`
+    CreatedAt   time.Time          `json:"created_at"`
+    UpdatedAt   time.Time          `json:"updated_at"`
+    
+    // 新しいフィールドを追加
+    Priority    string             `json:"priority"`    // 優先度
+    Tags        []string           `json:"tags"`        // タグ
+}
+```
+
+---
+
+### ログフォーマットのカスタマイズ
+
+`logging/logger.go` でログフォーマットを変更できます。
+
+---
+
+## デバッグ
+
+### デバッグログの有効化
+
+環境変数で設定：
+
+```env
+DEBUG=true
+LOG_LEVEL=debug
+```
+
+### エラーログの確認
+
+```bash
+# アプリケーションログ
+tail -f logs/commands_2025-11.log | grep '"success":false'
+
+# systemdログ（本番環境）
+sudo journalctl -u hxs-reservation-bot -f
+```
+
+---
+
+## テスト
+
+### ユニットテストの追加
+
+`storage/storage_test.go` などにテストを追加：
+
+```go
+func TestCleanupOldReservations(t *testing.T) {
+    store := NewStorage()
+    // テストコード
+}
+```
+
+### テストの実行
+
+```bash
+make test
+
+# または
+go test ./...
+
+# カバレッジ付き
+go test -cover ./...
+```
+
+---
+
+## Git管理
+
+### .gitignore
+
+以下のファイルはGit管理から除外されています：
+
+- `.env` - 環境変数（機密情報）
+- `bin/` - ビルド成果物
+- `logs/` - ログファイル
+- `reservations.json` - データファイル
+- `*.backup` - バックアップファイル
+
+### コミット前のチェック
+
+```bash
+# フォーマット＋静的解析
+make check
+
+# ビルドテスト
+make build
+
+# すべてのテスト
+make test
+```
+
+---
+
+## まとめ
+
+開発環境のポイント：
+
+✅ **Go Modules** - プロジェクト固有の依存関係管理  
+✅ **環境分離** - 開発/本番環境を簡単に切り替え  
+✅ **自動化** - Makefileで一貫したワークフロー  
+✅ **ホットリロード** - 開発効率を向上  
+✅ **コード品質** - fmt, vet, testで品質維持  
+✅ **拡張性** - 新しい機能を簡単に追加
+
+---
+
+**関連ドキュメント**: [README](../README.md) | [起動ガイド](SETUP.md) | [コマンド](COMMANDS.md) | [データ管理](DATA_MANAGEMENT.md) | [systemd](SYSTEMD.md)
+
 ```bash
 # airをインストール
 go install github.com/cosmtrek/air@latest

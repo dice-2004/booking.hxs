@@ -1,0 +1,567 @@
+# ⚙️ systemd セットアップガイド
+
+このドキュメントでは、Discord Bot 面接予約システムをLinuxサーバーで**systemdサービス**として登録し、自動起動させる方法を説明します。
+
+## 📑 目次
+
+- [前提条件](#前提条件)
+- [セットアップ方法](#セットアップ方法)
+- [環境変数の設定](#環境変数の設定)
+- [サービスの管理](#サービスの管理)
+- [ログの確認](#ログの確認)
+- [トラブルシューティング](#トラブルシューティング)
+- [サービスファイルリファレンス](#サービスファイルリファレンス)
+
+---
+
+## 前提条件
+
+### 必須
+
+- ✅ Linuxサーバー（Ubuntu, Debian, CentOS, RHEL など）
+- ✅ systemd がインストールされていること
+- ✅ Go 1.21以上がインストールされていること
+- ✅ プロジェクトがクローンされていること
+- ✅ `.env` ファイルに必要な環境変数が設定されていること
+
+### 確認方法
+
+```bash
+# systemdのバージョン確認
+systemctl --version
+
+# Goのバージョン確認
+go version
+
+# プロジェクトディレクトリの確認
+ls -la /home/hxs/booking.hxs
+```
+
+---
+
+## セットアップ方法
+
+### 方法A: 自動セットアップ（推奨）
+
+自動セットアップスクリプトを使用します。
+
+```bash
+# プロジェクトディレクトリに移動
+cd /home/hxs/booking.hxs
+
+# セットアップスクリプトを実行
+sudo ./setup-systemd.sh
+```
+
+**このスクリプトが実行すること**:
+1. ✅ バイナリのビルド
+2. ✅ サービスファイルのコピー
+3. ✅ systemdの設定を再読み込み
+4. ✅ サービスの有効化と起動
+
+**実行後に必要な作業**:
+- サービスファイルを編集して環境変数を設定（下記参照）
+
+---
+
+### 方法B: 手動セットアップ
+
+#### ステップ1: バイナリのビルド
+
+```bash
+# プロジェクトディレクトリに移動
+cd /home/hxs/booking.hxs
+
+# ビルド
+make build
+
+# または
+go build -o bin/hxs_reservation_system main.go
+
+# ビルド成功を確認
+ls -lh bin/hxs_reservation_system
+```
+
+#### ステップ2: サービスファイルのコピー
+
+```bash
+# サービスファイルをsystemdディレクトリにコピー
+sudo cp config/hxs-reservation-bot.service /etc/systemd/system/
+
+# ファイルがコピーされたか確認
+ls -l /etc/systemd/system/hxs-reservation-bot.service
+```
+
+#### ステップ3: サービスファイルを編集
+
+```bash
+sudo nano /etc/systemd/system/hxs-reservation-bot.service
+```
+
+以下の項目を**必ず**カスタマイズしてください：
+
+```ini
+[Service]
+# ⚠️ ユーザー名を変更（実際のユーザー名に）
+User=hxs
+
+# ⚠️ 作業ディレクトリを変更（実際のパスに）
+WorkingDirectory=/home/hxs/booking.hxs
+
+# ⚠️ 実行ファイルのパスを変更（実際のパスに）
+ExecStart=/home/hxs/booking.hxs/bin/hxs_reservation_system
+
+# ⚠️ 環境変数を設定（後述）
+Environment="DISCORD_TOKEN=your_actual_token_here"
+Environment="GUILD_ID=your_guild_id_here"
+Environment="FEEDBACK_CHANNEL_ID=your_channel_id_here"
+```
+
+#### ステップ4: systemd設定を再読み込み
+
+```bash
+sudo systemctl daemon-reload
+```
+
+#### ステップ5: サービスを有効化して起動
+
+```bash
+# 自動起動を有効化
+sudo systemctl enable hxs-reservation-bot
+
+# サービスを起動
+sudo systemctl start hxs-reservation-bot
+
+# 状態を確認
+sudo systemctl status hxs-reservation-bot
+```
+
+---
+
+## 環境変数の設定
+
+systemdサービスは通常の `.env` ファイルを自動では読み込みません。  
+以下のいずれかの方法で環境変数を設定してください。
+
+### 方法A: サービスファイルに直接記述（推奨）
+
+**メリット**: シンプルで確実  
+**デメリット**: サービスファイルを編集する必要がある
+
+```bash
+sudo nano /etc/systemd/system/hxs-reservation-bot.service
+```
+
+`[Service]` セクションに追加：
+
+```ini
+[Service]
+Environment="DISCORD_TOKEN=MTIzNDU2Nzg5MDEyMzQ1Njc4OQ.GaBcDe.FgHiJkLmNoPqRsTuVwXyZ"
+Environment="GUILD_ID=987654321098765432"
+Environment="FEEDBACK_CHANNEL_ID=111222333444555666"
+Environment="ENV=production"
+```
+
+変更後、設定を再読み込み：
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart hxs-reservation-bot
+```
+
+---
+
+### 方法B: 環境ファイルを使用
+
+**メリット**: 設定を外部ファイルで管理できる  
+**デメリット**: ファイルのパーミッション管理が必要
+
+#### 1. 本番環境用の.envファイルを準備
+
+```bash
+cd /home/hxs/booking.hxs
+
+# 本番環境に切り替え
+./switch_env.sh production
+
+# または直接コピー
+cp config/.env.production .env
+
+# トークンなどを実際の値に編集
+nano .env
+```
+
+#### 2. サービスファイルでEnvironmentFileを有効化
+
+```bash
+sudo nano /etc/systemd/system/hxs-reservation-bot.service
+```
+
+以下の行のコメントを**解除**：
+
+```ini
+[Service]
+# ⚠️ この行のコメントを解除
+EnvironmentFile=/home/hxs/booking.hxs/.env
+```
+
+#### 3. .envファイルのパーミッションを設定
+
+```bash
+# 所有者のみが読み書きできるように設定
+chmod 600 .env
+
+# 所有者をサービス実行ユーザーに変更
+sudo chown hxs:hxs .env
+```
+
+#### 4. 設定を再読み込みして再起動
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart hxs-reservation-bot
+```
+
+---
+
+## サービスの管理
+
+### 基本コマンド
+
+```bash
+# サービスを起動
+sudo systemctl start hxs-reservation-bot
+
+# サービスを停止
+sudo systemctl stop hxs-reservation-bot
+
+# サービスを再起動
+sudo systemctl restart hxs-reservation-bot
+
+# サービスの状態を確認
+sudo systemctl status hxs-reservation-bot
+
+# 自動起動を有効化
+sudo systemctl enable hxs-reservation-bot
+
+# 自動起動を無効化
+sudo systemctl disable hxs-reservation-bot
+```
+
+### サービスの状態確認
+
+#### 詳細な状態を確認
+
+```bash
+sudo systemctl status hxs-reservation-bot
+```
+
+**出力例（正常時）**:
+```
+● hxs-reservation-bot.service - HXS Discord Reservation Bot
+     Loaded: loaded (/etc/systemd/system/hxs-reservation-bot.service; enabled; vendor preset: enabled)
+     Active: active (running) since Sat 2025-11-09 10:00:00 JST; 5h 23min ago
+   Main PID: 12345 (hxs_reservation)
+      Tasks: 8 (limit: 4915)
+     Memory: 25.3M
+        CPU: 1.234s
+     CGroup: /system.slice/hxs-reservation-bot.service
+             └─12345 /home/hxs/booking.hxs/bin/hxs_reservation_system
+
+Nov 09 10:00:00 server systemd[1]: Started HXS Discord Reservation Bot.
+Nov 09 10:00:01 server hxs_reservation_system[12345]: Reservations loaded successfully
+Nov 09 10:00:01 server hxs_reservation_system[12345]: Bot is now running. Press CTRL+C to exit.
+```
+
+#### 自動起動の状態を確認
+
+```bash
+sudo systemctl is-enabled hxs-reservation-bot
+# 出力: enabled（有効）または disabled（無効）
+```
+
+#### 起動中かどうかを確認
+
+```bash
+sudo systemctl is-active hxs-reservation-bot
+# 出力: active（起動中）または inactive（停止中）
+```
+
+---
+
+## ログの確認
+
+### systemdのログを確認
+
+#### リアルタイムでログを監視
+
+```bash
+sudo journalctl -u hxs-reservation-bot -f
+```
+
+#### 最新のログを表示
+
+```bash
+# 最新の50行
+sudo journalctl -u hxs-reservation-bot -n 50
+
+# 最新の100行
+sudo journalctl -u hxs-reservation-bot -n 100
+```
+
+#### 特定の時間帯のログを表示
+
+```bash
+# 今日のログ
+sudo journalctl -u hxs-reservation-bot --since today
+
+# 直近1時間のログ
+sudo journalctl -u hxs-reservation-bot --since "1 hour ago"
+
+# 特定の日時以降のログ
+sudo journalctl -u hxs-reservation-bot --since "2025-11-09 10:00:00"
+```
+
+#### エラーログのみを表示
+
+```bash
+sudo journalctl -u hxs-reservation-bot -p err
+```
+
+### アプリケーションログを確認
+
+```bash
+# コマンドログ
+tail -f /home/hxs/booking.hxs/logs/commands_2025-11.log
+
+# 統計情報
+cat /home/hxs/booking.hxs/logs/command_stats.json | jq .
+```
+
+---
+
+## トラブルシューティング
+
+### サービスが起動しない
+
+#### 症状
+```
+Failed to start hxs-reservation-bot.service: Unit hxs-reservation-bot.service not found.
+```
+
+#### 解決方法
+1. サービスファイルが正しい場所にあるか確認
+   ```bash
+   ls -l /etc/systemd/system/hxs-reservation-bot.service
+   ```
+
+2. systemd設定を再読み込み
+   ```bash
+   sudo systemctl daemon-reload
+   ```
+
+---
+
+### 環境変数が読み込まれない
+
+#### 症状
+```
+DISCORD_TOKEN is not set in environment variables
+```
+
+#### 解決方法
+
+**方法1: サービスファイルに直接記述**
+```bash
+sudo nano /etc/systemd/system/hxs-reservation-bot.service
+```
+
+```ini
+[Service]
+Environment="DISCORD_TOKEN=your_token_here"
+Environment="GUILD_ID=your_guild_id_here"
+```
+
+**方法2: .envファイルのパスを確認**
+```bash
+# パスが正しいか確認
+cat /etc/systemd/system/hxs-reservation-bot.service | grep EnvironmentFile
+
+# .envファイルが存在するか確認
+ls -l /home/hxs/booking.hxs/.env
+```
+
+設定変更後：
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart hxs-reservation-bot
+```
+
+---
+
+### パーミッションエラー
+
+#### 症状
+```
+Permission denied
+```
+
+#### 解決方法
+```bash
+# バイナリに実行権限を付与
+chmod +x /home/hxs/booking.hxs/bin/hxs_reservation_system
+
+# 予約データファイルの権限を確認
+ls -la /home/hxs/booking.hxs/reservations.json
+chmod 644 /home/hxs/booking.hxs/reservations.json
+
+# ユーザーの所有権を確認
+sudo chown -R hxs:hxs /home/hxs/booking.hxs
+```
+
+---
+
+### サービスがクラッシュする
+
+#### ログを確認
+
+```bash
+# 詳細なログを確認
+sudo journalctl -u hxs-reservation-bot -n 200 --no-pager
+
+# エラーログのみ
+sudo journalctl -u hxs-reservation-bot -p err --no-pager
+```
+
+#### よくある原因
+
+1. **バイナリが古い**
+   ```bash
+   cd /home/hxs/booking.hxs
+   make build
+   sudo systemctl restart hxs-reservation-bot
+   ```
+
+2. **依存関係の問題**
+   ```bash
+   go mod download
+   make build
+   ```
+
+3. **ディスク容量不足**
+   ```bash
+   df -h
+   ```
+
+---
+
+## サービスファイルリファレンス
+
+### 基本設定
+
+```ini
+[Unit]
+Description=HXS Discord Reservation Bot
+After=network.target
+
+[Service]
+Type=simple
+User=hxs
+WorkingDirectory=/home/hxs/booking.hxs
+ExecStart=/home/hxs/booking.hxs/bin/hxs_reservation_system
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### カスタマイズ可能な項目
+
+| 項目 | 説明 | 推奨値 |
+|------|------|--------|
+| `User` | サービスを実行するユーザー | 実際のユーザー名 |
+| `WorkingDirectory` | 作業ディレクトリ | プロジェクトのルートパス |
+| `ExecStart` | 実行コマンド | バイナリの絶対パス |
+| `Restart` | 再起動ポリシー | `always`, `on-failure` |
+| `RestartSec` | 再起動までの待機時間（秒） | `10` |
+
+### 環境変数の設定方法
+
+#### 直接記述
+```ini
+[Service]
+Environment="DISCORD_TOKEN=your_token"
+Environment="GUILD_ID=your_guild_id"
+Environment="FEEDBACK_CHANNEL_ID=your_channel_id"
+```
+
+#### ファイルから読み込み
+```ini
+[Service]
+EnvironmentFile=/home/hxs/booking.hxs/.env
+```
+
+---
+
+## 運用Tips
+
+### 自動更新スクリプト
+
+```bash
+#!/bin/bash
+# update-bot.sh
+
+cd /home/hxs/booking.hxs
+
+# 最新コードを取得
+git pull
+
+# ビルド
+make build
+
+# サービスを再起動
+sudo systemctl restart hxs-reservation-bot
+
+# ステータス確認
+sudo systemctl status hxs-reservation-bot
+```
+
+### 定期的なログ確認
+
+```bash
+# cronで毎日ログをチェック
+0 9 * * * journalctl -u hxs-reservation-bot --since "24 hours ago" -p err > /tmp/bot-errors.log
+```
+
+### バックアップスクリプト
+
+```bash
+#!/bin/bash
+# backup-data.sh
+
+BACKUP_DIR="/home/hxs/backups"
+DATE=$(date +%Y%m%d)
+
+# 予約データをバックアップ
+cp /home/hxs/booking.hxs/reservations.json $BACKUP_DIR/reservations_$DATE.json
+
+# 7日以上前のバックアップを削除
+find $BACKUP_DIR -name "reservations_*.json" -mtime +7 -delete
+```
+
+---
+
+## まとめ
+
+systemdサービスとして設定することで：
+
+✅ **自動起動** - サーバー起動時に自動的にBotが起動  
+✅ **自動再起動** - クラッシュしても自動的に再起動  
+✅ **ログ管理** - journalctlで簡単にログ確認  
+✅ **サービス管理** - systemctlで簡単に管理  
+✅ **本番運用** - 安定した運用が可能
+
+---
+
+**関連ドキュメント**: [README](../README.md) | [起動ガイド](SETUP.md) | [コマンド](COMMANDS.md) | [データ管理](DATA_MANAGEMENT.md) | [開発](DEVELOPMENT.md)
