@@ -6,13 +6,19 @@ After=network.target
 
 [Service]
 # 実行するユーザー（rootではなく、普段作業するユーザー名）
+# ⚠️ 重要: 実際の環境に合わせて変更してください
+# 例: User=dice
 User=hxs
 
 # ボットのプロジェクトがあるディレクトリ
+# ⚠️ 重要: 実際のプロジェクトパスに変更してください
+# 例: WorkingDirectory=/home/dice/programs/booking.hxs
 WorkingDirectory=/home/hxs/booking.hxs
 
 # ボットを起動するコマンド
 # コンパイル済みのバイナリを実行
+# ⚠️ 重要: 実際のバイナリパスに変更してください
+# 例: ExecStart=/home/dice/programs/booking.hxs/bin/hxs_reservation_system
 ExecStart=/home/hxs/booking.hxs/bin/hxs_reservation_system
 
 # または、毎回ビルドして実行する場合は以下を使用:
@@ -25,8 +31,22 @@ RestartSec=10
 
 # 環境変数の読み込み（.envファイルがある場合）
 # 注: systemdは.envファイルを自動で読み込まないため、
-# 必要に応じてEnvironmentFileを使用するか、
-# Environment=KEY=VALUE で直接指定します
+# 以下のいずれかの方法で環境変数を設定してください:
+#
+# 方法A: EnvironmentFile を使用 (.env ファイルから読み込み)
+#   以下の行のコメントを解除して、実際のパスを指定:
+#   EnvironmentFile=/home/hxs/booking.hxs/.env
+#
+# 方法B: Environment で直接指定（推奨）
+#   以下のように直接記述:
+#   Environment="DISCORD_TOKEN=your_actual_token_here"
+#   Environment="GUILD_ID=your_guild_id_here"
+#   Environment="ENV=production"
+#
+# ⚠️ セキュリティ: トークンなどの機密情報を含むため、
+#    サービスファイルのパーミッションを適切に設定してください
+#    sudo chmod 600 /etc/systemd/system/hxs-reservation-bot.service
+
 # EnvironmentFile=/home/hxs/booking.hxs/.env
 
 # 標準出力とエラー出力をjournaldに送信

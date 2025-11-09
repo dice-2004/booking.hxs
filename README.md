@@ -457,15 +457,20 @@ make vet
 ### 🔧 運用ガイド
 - **[クリーンアップガイド](docs/CLEANUP.md)** - 予約データの自動クリーンアップ機能
 - **[ロギングガイド](docs/LOGGING.md)** - ログ機能とコマンド統計
-- **[systemd セットアップ](docs/SYSTEMD_SETUP.md)** - Linux サーバーでの自動起動設定
+- **[systemd セットアップ](docs/SYSTEMD_SETUP.md)** - Linux サーバーでの自動起動設定（詳細版）
+- **[systemd クイックリファレンス](docs/SYSTEMD_QUICK_REFERENCE.md)** - サービスファイルの設定早見表
 
 ### 📁 設定ファイル
-- **[config/](config/)** - 設定ファイルのサンプル
+- **[config/](config/)** - 設定ファイルのサンプルとテンプレート
   - `.env.example` - 環境変数の設定例
   - `.env.development` - 開発環境用設定
   - `.env.production` - 本番環境用設定
-  - `hxs-reservation-bot.service` - systemd サービスファイル
+  - `hxs-reservation-bot.service` - **systemd サービスファイル**（本番運用時に使用）
   - `.air.toml` - ホットリロード設定
+
+**サービスファイルの使用方法**:
+- Linux サーバーで自動起動させる場合は、`config/hxs-reservation-bot.service` を `/etc/systemd/system/` にコピーして使用します
+- 詳細は [systemd セットアップガイド](docs/SYSTEMD_SETUP.md) を参照してください
 
 ### 🛠️ スクリプト
 - **`setup.sh`** - 自動セットアップスクリプト

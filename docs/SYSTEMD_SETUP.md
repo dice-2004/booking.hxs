@@ -2,6 +2,8 @@
 
 HXS予約システムをsystemdサービスとして登録し、サーバー起動時に自動起動させる方法を説明します。
 
+> 💡 **クイックリファレンス**: 設定項目の早見表は [systemd クイックリファレンス](SYSTEMD_QUICK_REFERENCE.md) を参照してください
+
 ## 📋 前提条件
 
 - Goがインストールされていること
@@ -10,7 +12,26 @@ HXS予約システムをsystemdサービスとして登録し、サーバー起�
 
 ## 🚀 セットアップ手順
 
-### 1. バイナリのビルド
+### 方法A: 自動セットアップスクリプトを使用（推奨）
+
+プロジェクトルートディレクトリで自動セットアップスクリプトを実行します：
+
+```bash
+cd /home/hxs/booking.hxs
+./setup-systemd.sh
+```
+
+このスクリプトが以下を自動で実行します：
+- バイナリのビルド
+- サービスファイルのコピー
+- systemdの設定反映
+- サービスの有効化と起動
+
+スクリプト実行後、サービスファイルを編集して環境変数を設定してください（手順3参照）。
+
+### 方法B: 手動セットアップ
+
+#### 1. バイナリのビルド
 
 まず、実行可能なバイナリをビルドします：
 
@@ -21,19 +42,23 @@ make build
 go build -o bin/hxs_reservation_system main.go
 ```
 
-### 2. サービスファイルのコピー
+#### 2. サービスファイルのコピー
 
-プロジェクトに含まれる`hxs-reservation-bot.service`をsystemdディレクトリにコピーします：
+プロジェクトの`config/`ディレクトリに含まれる`hxs-reservation-bot.service`をsystemdディレクトリにコピーします：
 
 ```bash
-sudo cp hxs-reservation-bot.service /etc/systemd/system/
+sudo cp config/hxs-reservation-bot.service /etc/systemd/system/
 ```
 
-### 3. 環境変数の設定（重要）
+**注意**: サービスファイルは `config/` ディレクトリ内にあります。
+
+#### 3. 環境変数の設定（重要）
 
 systemdサービスは通常の`.env`ファイルを自動では読み込みません。以下のいずれかの方法で環境変数を設定してください：
 
 #### 方法A: サービスファイルに直接記述（推奨）
+
+サービスファイルを編集して環境変数を追加します：
 
 ```bash
 sudo nano /etc/systemd/system/hxs-reservation-bot.service
@@ -50,26 +75,39 @@ Environment="ENV=production"
 
 #### 方法B: 環境ファイルを使用
 
-`.env`ファイルを安全な場所に配置し、サービスファイルで参照：
+`.env`ファイルを安全な場所に配置し、サービスファイルで参照します。
 
-```bash
-sudo nano /etc/systemd/system/hxs-reservation-bot.service
-```
+1. まず、本番環境用の.envファイルを作成：
+   ```bash
+   cd /home/hxs/booking.hxs
+   cp config/.env.production .env
+   # または環境切り替えスクリプトを使用
+   ./switch_env.sh production
+   ```
 
-`EnvironmentFile`の行のコメントを解除：
+2. 次に、.envファイルを編集して実際のトークンを設定：
+   ```bash
+   nano .env
+   ```
 
-```ini
-[Service]
-EnvironmentFile=/home/hxs/booking.hxs/.env
-```
+3. サービスファイルで`EnvironmentFile`を有効化：
+   ```bash
+   sudo nano /etc/systemd/system/hxs-reservation-bot.service
+   ```
 
-### 4. systemdの設定を反映
+   以下の行のコメントを解除：
+   ```ini
+   [Service]
+   EnvironmentFile=/home/hxs/booking.hxs/.env
+   ```
+
+#### 4. systemdの設定を反映
 
 ```bash
 sudo systemctl daemon-reload
 ```
 
-### 5. サービスの有効化（自動起動設定）
+#### 5. サービスの有効化（自動起動設定）
 
 サーバー起動時に自動的にボットを起動するように設定：
 
@@ -77,13 +115,13 @@ sudo systemctl daemon-reload
 sudo systemctl enable hxs-reservation-bot.service
 ```
 
-### 6. サービスの起動
+#### 6. サービスの起動
 
 ```bash
 sudo systemctl start hxs-reservation-bot.service
 ```
 
-### 7. 起動確認
+#### 7. 起動確認
 
 ```bash
 sudo systemctl status hxs-reservation-bot.service
@@ -263,29 +301,111 @@ sudo systemctl status hxs-reservation-bot.service && sudo journalctl -u hxs-rese
 
 ## 🎯 推奨される運用フロー
 
-1. **初回セットアップ時**
-   ```bash
-   make build
-   sudo cp hxs-reservation-bot.service /etc/systemd/system/
-   sudo nano /etc/systemd/system/hxs-reservation-bot.service  # 環境変数を設定
-   sudo systemctl daemon-reload
-   sudo systemctl enable hxs-reservation-bot.service
-   sudo systemctl start hxs-reservation-bot.service
-   sudo systemctl status hxs-reservation-bot.service
-   ```
+### 1. 初回セットアップ時（自動スクリプト使用）
 
-2. **コード更新時**
-   ```bash
-   git pull
-   make build
-   sudo systemctl restart hxs-reservation-bot.service
-   ```
+```bash
+cd /home/hxs/booking.hxs
 
-3. **定期的な確認**
+# 本番環境用の.envファイルを準備
+./switch_env.sh production
+nano .env  # トークンなどを実際の値に設定
+
+# 自動セットアップを実行
+./setup-systemd.sh
+
+# サービスファイルを編集して環境変数を設定（方法Aの場合）
+sudo nano /etc/systemd/system/hxs-reservation-bot.service
+
+# systemdをリロードして起動
+sudo systemctl daemon-reload
+sudo systemctl start hxs-reservation-bot.service
+sudo systemctl status hxs-reservation-bot.service
+```
+
+### 2. 初回セットアップ時（手動）
+
+```bash
+cd /home/hxs/booking.hxs
+
+# ビルド
+make build
+
+# サービスファイルをコピー
+sudo cp config/hxs-reservation-bot.service /etc/systemd/system/
+
+# 環境変数を設定
+sudo nano /etc/systemd/system/hxs-reservation-bot.service
+
+# systemdに反映
+sudo systemctl daemon-reload
+sudo systemctl enable hxs-reservation-bot.service
+sudo systemctl start hxs-reservation-bot.service
+sudo systemctl status hxs-reservation-bot.service
+```
+
+### 3. コード更新時
    ```bash
-   sudo systemctl status hxs-reservation-bot.service
-   sudo journalctl -u hxs-reservation-bot.service --since "1 hour ago"
-   ```
+git pull
+make build
+sudo systemctl restart hxs-reservation-bot.service
+sudo systemctl status hxs-reservation-bot.service
+```
+
+### 4. 定期的な確認
+
+```bash
+sudo systemctl status hxs-reservation-bot.service
+sudo journalctl -u hxs-reservation-bot.service --since "1 hour ago"
+```
+
+## 📋 サービスファイルの詳細
+
+プロジェクトに含まれるサービスファイル（`config/hxs-reservation-bot.service`）の内容：
+
+```ini
+[Unit]
+Description=HXS Reservation System Discord Bot
+After=network.target
+
+[Service]
+# 実行ユーザー（実際の環境に合わせて変更）
+User=hxs
+
+# プロジェクトディレクトリ
+WorkingDirectory=/home/hxs/booking.hxs
+
+# 実行コマンド
+ExecStart=/home/hxs/booking.hxs/bin/hxs_reservation_system
+
+# 自動再起動設定
+Restart=always
+RestartSec=10
+
+# 環境変数ファイル（必要に応じてコメント解除）
+# EnvironmentFile=/home/hxs/booking.hxs/.env
+
+# ログ設定
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=hxs-bot
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### カスタマイズが必要な項目
+
+1. **User**: 実行ユーザー名を実際の環境に合わせて変更
+   - 例: `User=dice`
+
+2. **WorkingDirectory**: プロジェクトの実際のパス
+   - 例: `WorkingDirectory=/home/dice/programs/booking.hxs`
+
+3. **ExecStart**: バイナリの実際のパス
+   - 例: `ExecStart=/home/dice/programs/booking.hxs/bin/hxs_reservation_system`
+
+4. **EnvironmentFile**: .envファイルを使う場合はコメント解除して実際のパスを指定
+   - 例: `EnvironmentFile=/home/dice/programs/booking.hxs/.env`
 
 ---
 
