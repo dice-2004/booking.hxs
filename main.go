@@ -105,13 +105,13 @@ func main() {
 		}
 	}()
 
-	// 定期的に予約データをクリーンアップ（1時間ごと）
+	// 定期的に期限切れ予約を自動完了（1日1回）
 	go func() {
-		ticker := time.NewTicker(1 * time.Hour)
+		ticker := time.NewTicker(24 * time.Hour)
 		defer ticker.Stop()
 		for {
 			// 即座に1回実行してから定期実行
-			// 1. 終了時刻が過ぎたpending予約を自動完了
+			// 終了時刻が過ぎたpending予約を自動完了
 			completedCount, err := store.AutoCompleteExpiredReservations()
 			if err != nil {
 				log.Printf("Failed to auto-complete expired reservations: %v", err)
@@ -122,7 +122,18 @@ func main() {
 				}
 			}
 
-			// 2. 古い完了済み・キャンセル済み予約を削除（30日以上前）
+			// 次のティックまで待機
+			<-ticker.C
+		}
+	}()
+
+	// 定期的に古い予約データをクリーンアップ（1日1回）
+	go func() {
+		ticker := time.NewTicker(24 * time.Hour)
+		defer ticker.Stop()
+		for {
+			// 即座に1回実行してから定期実行
+			// 古い完了済み・キャンセル済み予約を削除（30日以上前）
 			deletedCount, err := store.CleanupOldReservations(30)
 			if err != nil {
 				log.Printf("Failed to cleanup old reservations: %v", err)

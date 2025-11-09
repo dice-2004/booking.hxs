@@ -10,7 +10,7 @@
 
 **動作:**
 - 終了時刻が過ぎた `pending`（予約中）ステータスの予約を自動的に `completed`（完了）に変更します
-- 実行頻度: **1時間ごと**
+- 実行頻度: **1日1回**
 - 起動時にも即座に1回実行されます
 
 **目的:**
@@ -20,7 +20,7 @@
 
 **動作:**
 - `completed`（完了）または `cancelled`（キャンセル済み）ステータスの予約で、最終更新日時から **30日以上経過** したものを自動削除します
-- 実行頻度: **1時間ごと**
+- 実行頻度: **1日1回**
 - 起動時にも即座に1回実行されます
 
 **保持期間:**
@@ -78,12 +78,12 @@ func (s *Storage) DeleteReservation(id string) error
 定期実行タスクとして実装されています：
 
 ```go
-// 定期的に予約データをクリーンアップ（1時間ごと）
+// 定期的に期限切れ予約を自動完了（1日1回）
 go func() {
-    ticker := time.NewTicker(1 * time.Hour)
+    ticker := time.NewTicker(24 * time.Hour)
     defer ticker.Stop()
     for {
-        // 1. 終了時刻が過ぎたpending予約を自動完了
+        // 終了時刻が過ぎたpending予約を自動完了
         completedCount, err := store.AutoCompleteExpiredReservations()
         if err != nil {
             log.Printf("Failed to auto-complete expired reservations: %v", err)
@@ -94,7 +94,17 @@ go func() {
             }
         }
 
-        // 2. 古い完了済み・キャンセル済み予約を削除（30日以上前）
+        // 次のティックまで待機
+        <-ticker.C
+    }
+}()
+
+// 定期的に古い予約データをクリーンアップ（1日1回）
+go func() {
+    ticker := time.NewTicker(24 * time.Hour)
+    defer ticker.Stop()
+    for {
+        // 古い完了済み・キャンセル済み予約を削除（30日以上前）
         deletedCount, err := store.CleanupOldReservations(30)
         if err != nil {
             log.Printf("Failed to cleanup old reservations: %v", err)
@@ -134,14 +144,21 @@ deletedCount, err := store.CleanupOldReservations(30)  // 30を希望する日�
 
 `main.go` の以下の行を編集することで、クリーンアップの実行頻度を変更できます：
 
+**期限切れ予約の自動完了:**
 ```go
-ticker := time.NewTicker(1 * time.Hour)  // 1 * time.Hour を希望する間隔に変更
+ticker := time.NewTicker(24 * time.Hour)  // 24 * time.Hour を希望する間隔に変更
+```
+
+**古い予約データの削除:**
+```go
+ticker := time.NewTicker(24 * time.Hour)  // 24 * time.Hour を希望する間隔に変更
 ```
 
 例：
-- `30 * time.Minute` - 30分ごと
+- `1 * time.Hour` - 1時間ごと
 - `6 * time.Hour` - 6時間ごと
-- `24 * time.Hour` - 24時間ごと
+- `12 * time.Hour` - 12時間ごと
+- `24 * time.Hour` - 24時間ごと（デフォルト）
 
 ## メリット
 
