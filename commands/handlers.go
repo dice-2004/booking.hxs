@@ -570,7 +570,7 @@ func handleHelp(s *discordgo.Session, i *discordgo.InteractionCreate, logger *lo
 		"• 期限切れの予約は毎日午前3時に自動完了されます\n\n"+
 		"**🗑️ 利用可能チャンネル:**\n" +
 		"• #1375843736864559195で利用が可能です\n" +
-		"• 期限切れの予約は毎日午前3時に自動完了されます"
+		"• または、認証済みの場合のみDMでも利用可能です\n\n"
 
 	respondEphemeral(s, i, helpMessage)
 
