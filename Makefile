@@ -28,7 +28,7 @@ run: ## アプリケーションを実行
 dev: ## 開発モードで実行（ホットリロード用）
 	@echo "開発モードで起動中..."
 	@if command -v air > /dev/null; then \
-		air; \
+		air -c config/.air.toml; \
 	else \
 		echo "air がインストールされていません。通常モードで起動します..."; \
 		go run main.go; \
@@ -68,7 +68,7 @@ lint: ## リンターを実行（golangci-lintが必要）
 setup: ## 初回セットアップ（.envファイルの作成）
 	@echo "初回セットアップ中..."
 	@if [ ! -f .env ]; then \
-		cp .env.example .env; \
+		cp config/.env.example .env; \
 		echo "✓ .env ファイルを作成しました"; \
 		echo "⚠️  .env ファイルを編集して、DISCORD_TOKENとGUILD_IDを設定してください"; \
 	else \

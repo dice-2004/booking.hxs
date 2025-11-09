@@ -11,7 +11,7 @@ import (
 	"github.com/dice/hxs_reservation_system/models"
 )
 
-const dataFilePath = "reservations.json"
+const dataFilePath = "data/reservations.json"
 
 // Storage は予約データを管理する
 type Storage struct {

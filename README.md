@@ -3,6 +3,15 @@
 Go言語で作成されたDiscord Bot用の面接予約システムです。スラッシュコマンドを使用して、面接の予約、取り消し、完了を管理できます。
 AIコーディングです。
 
+## 📚 目次
+
+- [機能](#機能)
+- [主な特徴](#主な特徴)
+- [セットアップ](#セットアップ)
+- [ドキュメント](#ドキュメント)
+- [トラブルシューティング](#トラブルシューティング)
+- [ライセンス](#ライセンス)
+
 ## 機能
 
 - **予約作成** (`/reserve`) - 面接の予約を作成
@@ -75,7 +84,7 @@ make setup
 
 # または従来の方法
 go mod download
-cp .env.example .env
+cp config/.env.example .env
 ```
 
 ### 5. 環境変数の設定
@@ -98,6 +107,13 @@ GUILD_ID=your_guild_id_here
 
 ```bash
 # 開発環境に切り替え
+./switch_env.sh development
+
+# 本番環境に切り替え
+./switch_env.sh production
+```
+
+詳細は [クイックスタートガイド](docs/QUICKSTART.md) を参照してください。
 ./switch_env.sh development
 
 # 本番環境に切り替え
@@ -420,13 +436,42 @@ make vet
 このBotには、予約データが永久的に蓄積しないように、自動クリーンアップ機能が実装されています。
 
 **機能:**
-1. **期限切れ予約の自動完了**（1時間ごと）
+1. **期限切れ予約の自動完了**（1日1回）
    - 終了時刻が過ぎた `pending` 予約を自動的に `completed` に変更
 
-2. **古い予約の自動削除**（1時間ごと）
+2. **古い予約の自動削除**（1日1回）
    - `completed` または `cancelled` ステータスの予約で、最終更新から **30日以上** 経過したものを自動削除
 
-詳細は [CLEANUP.md](CLEANUP.md) を参照してください。
+詳細は [クリーンアップガイド](docs/CLEANUP.md) を参照してください。
+
+## 📚 ドキュメント
+
+より詳しい情報は、以下のドキュメントを参照してください：
+
+### 📖 基本ガイド
+- **[クイックスタートガイド](docs/QUICKSTART.md)** - 最速でBotを起動する方法
+- **[開発ガイド](docs/DEVELOPMENT.md)** - 開発環境のセットアップと開発フロー
+- **[プロジェクト概要](docs/PROJECT_SUMMARY.md)** - プロジェクトの全体像と構造
+- **[プロジェクト構造](docs/PROJECT_STRUCTURE.md)** - ディレクトリ構造とファイル配置の詳細
+
+### 🔧 運用ガイド
+- **[クリーンアップガイド](docs/CLEANUP.md)** - 予約データの自動クリーンアップ機能
+- **[ロギングガイド](docs/LOGGING.md)** - ログ機能とコマンド統計
+- **[systemd セットアップ](docs/SYSTEMD_SETUP.md)** - Linux サーバーでの自動起動設定
+
+### 📁 設定ファイル
+- **[config/](config/)** - 設定ファイルのサンプル
+  - `.env.example` - 環境変数の設定例
+  - `.env.development` - 開発環境用設定
+  - `.env.production` - 本番環境用設定
+  - `hxs-reservation-bot.service` - systemd サービスファイル
+  - `.air.toml` - ホットリロード設定
+
+### 🛠️ スクリプト
+- **`setup.sh`** - 自動セットアップスクリプト
+- **`switch_env.sh`** - 環境切り替えスクリプト
+- **`manage_deps.sh`** - 依存関係管理スクリプト
+- **`setup-systemd.sh`** - systemd セットアップスクリプト
 
 ## ライセンス
 
