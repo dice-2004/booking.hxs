@@ -17,9 +17,10 @@ import (
 )
 
 var (
-	store   *storage.Storage
-	logger  *logging.Logger
-	guildID string
+	store            *storage.Storage
+	logger           *logging.Logger
+	guildID          string
+	allowedChannelID string
 	// 同一Interactionの重複処理を防止
 	processedInteractions sync.Map
 )
@@ -31,6 +32,7 @@ func init() {
 	}
 
 	guildID = os.Getenv("GUILD_ID")
+	allowedChannelID = os.Getenv("ALLOWED_CHANNEL_ID")
 }
 
 func main() {
@@ -63,7 +65,7 @@ func main() {
 		if _, loaded := processedInteractions.LoadOrStore(i.ID, struct{}{}); loaded {
 			return
 		}
-		commands.HandleInteraction(s, i, store, logger)
+		commands.HandleInteraction(s, i, store, logger, allowedChannelID)
 	})
 
 	// 必要なIntentを設定
@@ -211,7 +213,7 @@ func registerCommands(s *discordgo.Session) error {
 	commands := []*discordgo.ApplicationCommand{
 		{
 			Name:        "reserve",
-			Description: "面接の予約を作成します",
+			Description: "部室の予約を作成します",
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionString,

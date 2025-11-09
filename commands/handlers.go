@@ -14,11 +14,31 @@ import (
 )
 
 // HandleInteraction はDiscordのインタラクションを処理する
-func HandleInteraction(s *discordgo.Session, i *discordgo.InteractionCreate, store *storage.Storage, logger *logging.Logger) {
+func HandleInteraction(s *discordgo.Session, i *discordgo.InteractionCreate, store *storage.Storage, logger *logging.Logger, allowedChannelID string) {
 	commandName := i.ApplicationCommandData().Name
-	userID := i.Member.User.ID
-	username := getDisplayName(i.Member)
+
+	// DMかどうかを判定
+	isDM := i.GuildID == ""
+
+	// チャンネルIDを取得
 	channelID := i.ChannelID
+
+	// ユーザー情報を取得（DMの場合とサーバーの場合で取得方法が異なる）
+	var userID, username string
+	if isDM {
+		userID = i.User.ID
+		username = i.User.Username
+	} else {
+		userID = i.Member.User.ID
+		username = getDisplayName(i.Member)
+	}
+
+	// チャンネル制限チェック（DMは除く）
+	if !isDM && allowedChannelID != "" && channelID != allowedChannelID {
+		respondEphemeral(s, i, "❌ このコマンドは指定されたチャンネルでのみ使用できます。")
+		logger.LogCommand(commandName, userID, username, channelID, false, "Not allowed channel", nil)
+		return
+	}
 
 	// コマンドパラメータを取得
 	parameters := make(map[string]interface{})
@@ -31,28 +51,38 @@ func HandleInteraction(s *discordgo.Session, i *discordgo.InteractionCreate, sto
 
 	switch commandName {
 	case "reserve":
-		handleReserve(s, i, store, logger)
+		handleReserve(s, i, store, logger, allowedChannelID, isDM)
 	case "cancel":
-		handleCancel(s, i, store, logger)
+		handleCancel(s, i, store, logger, allowedChannelID, isDM)
 	case "complete":
-		handleComplete(s, i, store, logger)
+		handleComplete(s, i, store, logger, allowedChannelID, isDM)
 	case "list":
-		handleList(s, i, store, logger)
+		handleList(s, i, store, logger, isDM)
 	case "my-reservations":
-		handleMyReservations(s, i, store, logger)
+		handleMyReservations(s, i, store, logger, isDM)
 	case "help":
-		handleHelp(s, i, logger)
+		handleHelp(s, i, logger, isDM)
 	case "feedback":
-		handleFeedback(s, i, logger)
+		handleFeedback(s, i, logger, isDM)
 	}
 }
 
 // handleReserve は予約作成コマンドを処理する
-func handleReserve(s *discordgo.Session, i *discordgo.InteractionCreate, store *storage.Storage, logger *logging.Logger) {
+func handleReserve(s *discordgo.Session, i *discordgo.InteractionCreate, store *storage.Storage, logger *logging.Logger, allowedChannelID string, isDM bool) {
 	options := i.ApplicationCommandData().Options
 	optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
 	for _, opt := range options {
 		optionMap[opt.Name] = opt
+	}
+
+	// ユーザー情報を取得
+	var userID, username string
+	if isDM {
+		userID = i.User.ID
+		username = i.User.Username
+	} else {
+		userID = i.Member.User.ID
+		username = getDisplayName(i.Member)
 	}
 
 	// 必須パラメータを取得
@@ -95,7 +125,7 @@ func handleReserve(s *discordgo.Session, i *discordgo.InteractionCreate, store *
 			date = t2.Format("2006-01-02")
 		} else {
 			errorMsg := "日付の形式が正しくありません（YYYY-MM-DD または YYYY/MM/DD）"
-			logger.LogCommand("reserve", i.Member.User.ID, getDisplayName(i.Member), i.ChannelID, false, errorMsg, parameters)
+			logger.LogCommand("reserve", userID, username, i.ChannelID, false, errorMsg, parameters)
 			respondError(s, i, errorMsg)
 			return
 		}
@@ -103,14 +133,14 @@ func handleReserve(s *discordgo.Session, i *discordgo.InteractionCreate, store *
 
 	if _, err := time.Parse("15:04", startTime); err != nil {
 		errorMsg := "開始時間の形式が正しくありません（HH:MM形式で入力してください）"
-		logger.LogCommand("reserve", i.Member.User.ID, getDisplayName(i.Member), i.ChannelID, false, errorMsg, parameters)
+		logger.LogCommand("reserve", userID, username, i.ChannelID, false, errorMsg, parameters)
 		respondError(s, i, errorMsg)
 		return
 	}
 
 	if _, err := time.Parse("15:04", endTime); err != nil {
 		errorMsg := "終了時間の形式が正しくありません（HH:MM形式で入力してください）"
-		logger.LogCommand("reserve", i.Member.User.ID, getDisplayName(i.Member), i.ChannelID, false, errorMsg, parameters)
+		logger.LogCommand("reserve", userID, username, i.ChannelID, false, errorMsg, parameters)
 		respondError(s, i, errorMsg)
 		return
 	}
@@ -125,8 +155,8 @@ func handleReserve(s *discordgo.Session, i *discordgo.InteractionCreate, store *
 	// 予約を作成
 	reservation := &models.Reservation{
 		ID:        reservationID,
-		UserID:    i.Member.User.ID,
-		Username:  getDisplayName(i.Member),
+		UserID:    userID,
+		Username:  username,
 		Date:      date,
 		StartTime: startTime,
 		EndTime:   endTime,
@@ -134,7 +164,7 @@ func handleReserve(s *discordgo.Session, i *discordgo.InteractionCreate, store *
 		Status:    models.StatusPending,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
-		ChannelID: i.ChannelID,
+		ChannelID: allowedChannelID, // 公開メッセージの送信先は常に指定チャンネル
 	}
 
 	// 時間の重複をチェック
@@ -195,11 +225,12 @@ func handleReserve(s *discordgo.Session, i *discordgo.InteractionCreate, store *
 		reservation.EndTime,
 		formatComment(comment),
 	)
-	s.ChannelMessageSend(i.ChannelID, publicMsg)
+	// DMから実行された場合も、指定チャンネルに通知
+	s.ChannelMessageSend(allowedChannelID, publicMsg)
 }
 
 // handleCancel は予約キャンセルコマンドを処理する
-func handleCancel(s *discordgo.Session, i *discordgo.InteractionCreate, store *storage.Storage, logger *logging.Logger) {
+func handleCancel(s *discordgo.Session, i *discordgo.InteractionCreate, store *storage.Storage, logger *logging.Logger, allowedChannelID string, isDM bool) {
 	options := i.ApplicationCommandData().Options
 	optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
 	for _, opt := range options {
@@ -248,11 +279,12 @@ func handleCancel(s *discordgo.Session, i *discordgo.InteractionCreate, store *s
 		reservation.EndTime,
 		formatComment(comment),
 	)
-	s.ChannelMessageSend(i.ChannelID, msg)
+	// DMから実行された場合も、指定チャンネルに通知
+	s.ChannelMessageSend(allowedChannelID, msg)
 }
 
 // handleComplete は予約完了コマンドを処理する
-func handleComplete(s *discordgo.Session, i *discordgo.InteractionCreate, store *storage.Storage, logger *logging.Logger) {
+func handleComplete(s *discordgo.Session, i *discordgo.InteractionCreate, store *storage.Storage, logger *logging.Logger, allowedChannelID string, isDM bool) {
 	options := i.ApplicationCommandData().Options
 	optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
 	for _, opt := range options {
@@ -301,11 +333,12 @@ func handleComplete(s *discordgo.Session, i *discordgo.InteractionCreate, store 
 		reservation.EndTime,
 		formatComment(comment),
 	)
-	s.ChannelMessageSend(i.ChannelID, msg)
+	// DMから実行された場合も、指定チャンネルに通知
+	s.ChannelMessageSend(allowedChannelID, msg)
 }
 
 // handleList はすべての予約一覧を表示する
-func handleList(s *discordgo.Session, i *discordgo.InteractionCreate, store *storage.Storage, logger *logging.Logger) {
+func handleList(s *discordgo.Session, i *discordgo.InteractionCreate, store *storage.Storage, logger *logging.Logger, isDM bool) {
 
 	allReservations := store.GetAllReservations()
 	// 完了・キャンセル済みを除外
@@ -351,8 +384,13 @@ func handleList(s *discordgo.Session, i *discordgo.InteractionCreate, store *sto
 }
 
 // handleMyReservations は自分の予約一覧を表示する
-func handleMyReservations(s *discordgo.Session, i *discordgo.InteractionCreate, store *storage.Storage, logger *logging.Logger) {
-	userID := i.Member.User.ID
+func handleMyReservations(s *discordgo.Session, i *discordgo.InteractionCreate, store *storage.Storage, logger *logging.Logger, isDM bool) {
+	var userID string
+	if isDM {
+		userID = i.User.ID
+	} else {
+		userID = i.Member.User.ID
+	}
 
 	allReservations := store.GetUserReservations(userID)
 	// 完了・キャンセル済みを除外
@@ -473,11 +511,11 @@ func respondEphemeral(s *discordgo.Session, i *discordgo.InteractionCreate, mess
 }
 
 // handleHelp はヘルプコマンドを処理する（コマンドを打った人にしか見えない）
-func handleHelp(s *discordgo.Session, i *discordgo.InteractionCreate, logger *logging.Logger) {
+func handleHelp(s *discordgo.Session, i *discordgo.InteractionCreate, logger *logging.Logger, isDM bool) {
 	helpMessage := "📖 **面接予約システム - ヘルプ**\n\n" +
 		"**利用可能なコマンド:**\n\n" +
 		"**📅 /reserve**\n" +
-		"面接の予約を作成します\n" +
+		"部室の予約を作成します\n" +
 		"• `date`: 予約日（YYYY-MM-DD または YYYY/MM/DD、例: 2025-10-15）\n" +
 		"• `start_time`: 開始時間（HH:MM形式、例: 14:00）\n" +
 		"• `end_time`: 終了時間（HH:MM形式、例: 15:00）※省略時は開始時刻+1時間\n" +
@@ -514,7 +552,7 @@ func handleHelp(s *discordgo.Session, i *discordgo.InteractionCreate, logger *lo
 }
 
 // handleFeedback はフィードバックコマンドを処理する（匿名で特定チャンネルに転送）
-func handleFeedback(s *discordgo.Session, i *discordgo.InteractionCreate, logger *logging.Logger) {
+func handleFeedback(s *discordgo.Session, i *discordgo.InteractionCreate, logger *logging.Logger, isDM bool) {
 	options := i.ApplicationCommandData().Options
 	if len(options) == 0 {
 		respondError(s, i, "フィードバック内容を入力してください")
@@ -527,11 +565,21 @@ func handleFeedback(s *discordgo.Session, i *discordgo.InteractionCreate, logger
 		return
 	}
 
+	// ユーザー情報を取得
+	var userID, username string
+	if isDM {
+		userID = i.User.ID
+		username = i.User.Username
+	} else {
+		userID = i.Member.User.ID
+		username = getDisplayName(i.Member)
+	}
+
 	// 環境変数からフィードバックチャンネルIDを取得
 	feedbackChannelID := os.Getenv("FEEDBACK_CHANNEL_ID")
 	if feedbackChannelID == "" {
 		respondError(s, i, "フィードバックチャンネルが設定されていません。管理者に連絡してください。")
-		logger.LogCommand("feedback", i.Member.User.ID, getDisplayName(i.Member), i.ChannelID, false, "FEEDBACK_CHANNEL_ID not set", map[string]interface{}{"message_length": len(message)})
+		logger.LogCommand("feedback", userID, username, i.ChannelID, false, "FEEDBACK_CHANNEL_ID not set", map[string]interface{}{"message_length": len(message)})
 		return
 	}
 
@@ -552,7 +600,7 @@ func handleFeedback(s *discordgo.Session, i *discordgo.InteractionCreate, logger
 	_, err := s.ChannelMessageSendEmbed(feedbackChannelID, feedbackEmbed)
 	if err != nil {
 		respondError(s, i, "フィードバックの送信に失敗しました。管理者に連絡してください。")
-		logger.LogCommand("feedback", i.Member.User.ID, getDisplayName(i.Member), i.ChannelID, false, fmt.Sprintf("Failed to send feedback: %v", err), map[string]interface{}{"message_length": len(message)})
+		logger.LogCommand("feedback", userID, username, i.ChannelID, false, fmt.Sprintf("Failed to send feedback: %v", err), map[string]interface{}{"message_length": len(message)})
 		return
 	}
 
@@ -567,5 +615,5 @@ func handleFeedback(s *discordgo.Session, i *discordgo.InteractionCreate, logger
 	respondEphemeral(s, i, confirmMessage)
 
 	// ログに記録（メッセージの長さのみ記録、内容は記録しない）
-	logger.LogCommand("feedback", i.Member.User.ID, getDisplayName(i.Member), i.ChannelID, true, "", map[string]interface{}{"message_length": len(message)})
+	logger.LogCommand("feedback", userID, username, i.ChannelID, true, "", map[string]interface{}{"message_length": len(message)})
 }

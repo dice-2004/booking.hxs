@@ -167,6 +167,9 @@ DISCORD_TOKEN=your_discord_bot_token_here
 # Guild ID（推奨）
 GUILD_ID=your_guild_id_here
 
+# Allowed Channel ID（推奨）
+ALLOWED_CHANNEL_ID=your_allowed_channel_id_here
+
 # Feedback Channel ID（オプション）
 FEEDBACK_CHANNEL_ID=your_feedback_channel_id_here
 ```
@@ -177,7 +180,9 @@ FEEDBACK_CHANNEL_ID=your_feedback_channel_id_here
 |---------|------|---------------|
 | `DISCORD_TOKEN` | Discord Developer Portalで取得したBotトークン | **必須** |
 | `GUILD_ID` | テスト用サーバーのID。設定するとそのサーバー専用コマンドとして即座に登録される。空欄ならグローバルコマンド（反映に最大1時間） | 推奨 |
+| `ALLOWED_CHANNEL_ID` | コマンドを受け付けるチャンネルのID。設定すると、そのチャンネルとDMでのみコマンドが動作します。DMから実行された場合、公開メッセージはこのチャンネルに送信されます。 | 推奨 |
 | `FEEDBACK_CHANNEL_ID` | `/feedback` コマンドで送信されたフィードバックを受け取るチャンネルのID。設定しない場合、`/feedback` コマンドは使用不可 | オプション |
+
 
 
 ---
