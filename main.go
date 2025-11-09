@@ -283,6 +283,22 @@ func registerCommands(s *discordgo.Session) error {
 			Name:        "my-reservations",
 			Description: "自分の予約を表示します（自分だけに表示されます）",
 		},
+		{
+			Name:        "help",
+			Description: "ヘルプメッセージを表示します（自分だけに表示されます）",
+		},
+		{
+			Name:        "feedback",
+			Description: "システムへのご意見・ご要望を匿名で送信します",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "message",
+					Description: "フィードバック内容",
+					Required:    true,
+				},
+			},
+		},
 	}
 
 	for _, cmd := range commands {

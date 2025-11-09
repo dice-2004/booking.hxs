@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -39,6 +40,10 @@ func HandleInteraction(s *discordgo.Session, i *discordgo.InteractionCreate, sto
 		handleList(s, i, store, logger)
 	case "my-reservations":
 		handleMyReservations(s, i, store, logger)
+	case "help":
+		handleHelp(s, i, logger)
+	case "feedback":
+		handleFeedback(s, i, logger)
 	}
 }
 
@@ -465,4 +470,102 @@ func respondEphemeral(s *discordgo.Session, i *discordgo.InteractionCreate, mess
 			Flags:   discordgo.MessageFlagsEphemeral,
 		},
 	})
+}
+
+// handleHelp はヘルプコマンドを処理する（コマンドを打った人にしか見えない）
+func handleHelp(s *discordgo.Session, i *discordgo.InteractionCreate, logger *logging.Logger) {
+	helpMessage := "📖 **面接予約システム - ヘルプ**\n\n" +
+		"**利用可能なコマンド:**\n\n" +
+		"**📅 /reserve**\n" +
+		"面接の予約を作成します\n" +
+		"• `date`: 予約日（YYYY-MM-DD または YYYY/MM/DD、例: 2025-10-15）\n" +
+		"• `start_time`: 開始時間（HH:MM形式、例: 14:00）\n" +
+		"• `end_time`: 終了時間（HH:MM形式、例: 15:00）※省略時は開始時刻+1時間\n" +
+		"• `comment`: コメント（任意）\n\n" +
+		"**🚫 /cancel**\n" +
+		"予約を取り消します\n" +
+		"• `reservation_id`: 予約ID\n" +
+		"• `comment`: コメント（任意）\n\n" +
+		"**✅ /complete**\n" +
+		"予約を完了にします\n" +
+		"• `reservation_id`: 予約ID\n" +
+		"• `comment`: コメント（任意）\n\n" +
+		"**📋 /list**\n" +
+		"すべての予約を表示します（自分だけに表示されます）\n\n" +
+		"**👤 /my-reservations**\n" +
+		"自分の予約を表示します（自分だけに表示されます）\n\n" +
+		"**📝 /feedback**\n" +
+		"システムへのご意見・ご要望を匿名で送信します\n" +
+		"• `message`: フィードバック内容\n\n" +
+		"**ℹ️ /help**\n" +
+		"このヘルプメッセージを表示します\n\n" +
+		"**🔒 プライバシー:**\n" +
+		"• /list、/my-reservations、/help、/feedback は自分だけに表示されます\n" +
+		"• 予約作成時、予約IDは予約者だけに通知されます\n" +
+		"• フィードバックは完全に匿名で送信されます\n\n" +
+		"**🗑️ データ管理:**\n" +
+		"• 完了・キャンセル済みの予約は30日後に自動削除されます\n" +
+		"• 期限切れの予約は毎日午前3時に自動完了されます"
+
+	respondEphemeral(s, i, helpMessage)
+
+	// ログに記録
+	logger.LogCommand("help", i.Member.User.ID, getDisplayName(i.Member), i.ChannelID, true, "", nil)
+}
+
+// handleFeedback はフィードバックコマンドを処理する（匿名で特定チャンネルに転送）
+func handleFeedback(s *discordgo.Session, i *discordgo.InteractionCreate, logger *logging.Logger) {
+	options := i.ApplicationCommandData().Options
+	if len(options) == 0 {
+		respondError(s, i, "フィードバック内容を入力してください")
+		return
+	}
+
+	message := options[0].StringValue()
+	if message == "" {
+		respondError(s, i, "フィードバック内容を入力してください")
+		return
+	}
+
+	// 環境変数からフィードバックチャンネルIDを取得
+	feedbackChannelID := os.Getenv("FEEDBACK_CHANNEL_ID")
+	if feedbackChannelID == "" {
+		respondError(s, i, "フィードバックチャンネルが設定されていません。管理者に連絡してください。")
+		logger.LogCommand("feedback", i.Member.User.ID, getDisplayName(i.Member), i.ChannelID, false, "FEEDBACK_CHANNEL_ID not set", map[string]interface{}{"message_length": len(message)})
+		return
+	}
+
+	// タイムスタンプを生成
+	timestamp := time.Now().Format("2006-01-02 15:04:05")
+
+	// フィードバックチャンネルに匿名で転送
+	feedbackEmbed := &discordgo.MessageEmbed{
+		Title:       "💬 新しいフィードバック",
+		Description: message,
+		Color:       0x5865F2, // Discord Blurple
+		Footer: &discordgo.MessageEmbedFooter{
+			Text: fmt.Sprintf("受信日時: %s | 匿名フィードバック", timestamp),
+		},
+		Timestamp: time.Now().Format(time.RFC3339),
+	}
+
+	_, err := s.ChannelMessageSendEmbed(feedbackChannelID, feedbackEmbed)
+	if err != nil {
+		respondError(s, i, "フィードバックの送信に失敗しました。管理者に連絡してください。")
+		logger.LogCommand("feedback", i.Member.User.ID, getDisplayName(i.Member), i.ChannelID, false, fmt.Sprintf("Failed to send feedback: %v", err), map[string]interface{}{"message_length": len(message)})
+		return
+	}
+
+	// 送信者に確認メッセージを表示（自分だけに見える）
+	confirmMessage := `✅ **フィードバックを送信しました**
+
+ご意見ありがとうございます。
+あなたのフィードバックは匿名で運営チームに届けられました。
+
+今後のシステム改善に活用させていただきます。`
+
+	respondEphemeral(s, i, confirmMessage)
+
+	// ログに記録（メッセージの長さのみ記録、内容は記録しない）
+	logger.LogCommand("feedback", i.Member.User.ID, getDisplayName(i.Member), i.ChannelID, true, "", map[string]interface{}{"message_length": len(message)})
 }

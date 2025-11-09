@@ -100,6 +100,7 @@ go clean -modcache
 ```env
 DISCORD_TOKEN=dev_token_here
 GUILD_ID=dev_server_id
+FEEDBACK_CHANNEL_ID=dev_feedback_channel_id
 ENV=development
 DATA_FILE=reservations_dev.json
 ```
@@ -108,6 +109,7 @@ DATA_FILE=reservations_dev.json
 ```env
 DISCORD_TOKEN=prod_token_here
 GUILD_ID=
+FEEDBACK_CHANNEL_ID=prod_feedback_channel_id
 ENV=production
 DATA_FILE=reservations.json
 ```

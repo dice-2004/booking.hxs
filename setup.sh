@@ -52,6 +52,7 @@ if [ ! -f ".env" ]; then
         echo -e "${YELLOW}⚠️  .envファイルを編集して、以下を設定してください:${NC}"
         echo "   - DISCORD_TOKEN: BotのトークンDiscord Developer Portalで取得）"
         echo "   - GUILD_ID: テスト用サーバーのID（オプション）"
+        echo "   - FEEDBACK_CHANNEL_ID: フィードバック受信チャンネルのID（オプション、/feedbackコマンド用）"
     else
         echo -e "${RED}エラー: config/.env.exampleファイルが見つかりません${NC}"
         exit 1

@@ -32,7 +32,10 @@ vi .env
 ```env
 DISCORD_TOKEN=あなたのBotトークン
 GUILD_ID=テスト用サーバーID（オプション）
+FEEDBACK_CHANNEL_ID=フィードバック受信チャンネルID（オプション）
 ```
+
+**注意**: `FEEDBACK_CHANNEL_ID`を設定しないと、`/feedback`コマンドが使用できません。
 
 ### 3. 起動！
 
