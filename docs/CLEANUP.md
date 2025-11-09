@@ -10,8 +10,8 @@
 
 **動作:**
 - 終了時刻が過ぎた `pending`（予約中）ステータスの予約を自動的に `completed`（完了）に変更します
-- 実行頻度: **1日1回**
-- 起動時にも即座に1回実行されます
+- 実行頻度: **毎日午前3時**に実行
+- Bot起動時が深夜0時台の場合は、起動直後にも実行されます
 
 **目的:**
 - 終了時刻が過ぎても手動で完了されていない予約を自動的に完了状態にすることで、予約状態を正確に保ちます
@@ -20,8 +20,8 @@
 
 **動作:**
 - `completed`（完了）または `cancelled`（キャンセル済み）ステータスの予約で、最終更新日時から **30日以上経過** したものを自動削除します
-- 実行頻度: **1日1回**
-- 起動時にも即座に1回実行されます
+- 実行頻度: **毎日午前3時10分**に実行
+- Bot起動時が深夜0時台の場合は、起動直後にも実行されます
 
 **保持期間:**
 - デフォルト: **30日間**
@@ -78,11 +78,22 @@ func (s *Storage) DeleteReservation(id string) error
 定期実行タスクとして実装されています：
 
 ```go
-// 定期的に期限切れ予約を自動完了（1日1回）
+// 定期的に期限切れ予約を自動完了（毎日午前3時）
 go func() {
-    ticker := time.NewTicker(24 * time.Hour)
-    defer ticker.Stop()
     for {
+        now := time.Now()
+        // 次の午前3時を計算
+        next := time.Date(now.Year(), now.Month(), now.Day(), 3, 0, 0, 0, now.Location())
+        if !now.Before(next) {
+            // 今日の3時を過ぎている場合は明日の3時
+            next = next.Add(24 * time.Hour)
+        }
+
+        // 次の実行時刻まで待機
+        duration := time.Until(next)
+        log.Printf("Next auto-complete scheduled at: %s (in %v)", next.Format("2006-01-02 15:04:05"), duration)
+        time.Sleep(duration)
+
         // 終了時刻が過ぎたpending予約を自動完了
         completedCount, err := store.AutoCompleteExpiredReservations()
         if err != nil {
@@ -93,17 +104,25 @@ go func() {
                 log.Printf("Failed to save after auto-completion: %v", err)
             }
         }
-
-        // 次のティックまで待機
-        <-ticker.C
     }
 }()
 
-// 定期的に古い予約データをクリーンアップ（1日1回）
+// 定期的に古い予約データをクリーンアップ（毎日午前3時10分）
 go func() {
-    ticker := time.NewTicker(24 * time.Hour)
-    defer ticker.Stop()
     for {
+        now := time.Now()
+        // 次の午前3時10分を計算
+        next := time.Date(now.Year(), now.Month(), now.Day(), 3, 10, 0, 0, now.Location())
+        if !now.Before(next) {
+            // 今日の3時10分を過ぎている場合は明日の3時10分
+            next = next.Add(24 * time.Hour)
+        }
+
+        // 次の実行時刻まで待機
+        duration := time.Until(next)
+        log.Printf("Next cleanup scheduled at: %s (in %v)", next.Format("2006-01-02 15:04:05"), duration)
+        time.Sleep(duration)
+
         // 古い完了済み・キャンセル済み予約を削除（30日以上前）
         deletedCount, err := store.CleanupOldReservations(30)
         if err != nil {
@@ -114,9 +133,6 @@ go func() {
                 log.Printf("Failed to save after cleanup: %v", err)
             }
         }
-
-        // 次のティックまで待機
-        <-ticker.C
     }
 }()
 ```
@@ -125,9 +141,22 @@ go func() {
 
 クリーンアップ処理が実行されると、以下のようなログが出力されます：
 
+### 起動時
+```
+Next auto-complete scheduled at: 2025-11-10 03:00:00 (in 8h45m32s)
+Next cleanup scheduled at: 2025-11-10 03:10:00 (in 8h55m32s)
+```
+
+### 実行時
 ```
 Auto-completed 3 expired reservation(s)
 Cleaned up 5 old reservation(s)
+```
+
+### 何もない場合
+```
+Auto-complete check completed: no expired reservations found
+Cleanup check completed: no old reservations to remove
 ```
 
 ## カスタマイズ
@@ -140,25 +169,36 @@ Cleaned up 5 old reservation(s)
 deletedCount, err := store.CleanupOldReservations(30)  // 30を希望する日数に変更
 ```
 
-### 実行頻度の変更
+### 実行時刻の変更
 
-`main.go` の以下の行を編集することで、クリーンアップの実行頻度を変更できます：
+`main.go` の以下の部分を編集することで、実行時刻を変更できます：
 
-**期限切れ予約の自動完了:**
+**期限切れ予約の自動完了の実行時刻:**
 ```go
-ticker := time.NewTicker(24 * time.Hour)  // 24 * time.Hour を希望する間隔に変更
+// 午前3時に実行
+next := time.Date(now.Year(), now.Month(), now.Day(), 3, 0, 0, 0, now.Location())
 ```
 
-**古い予約データの削除:**
+時刻を変更する例：
 ```go
-ticker := time.NewTicker(24 * time.Hour)  // 24 * time.Hour を希望する間隔に変更
+// 午前2時に実行
+next := time.Date(now.Year(), now.Month(), now.Day(), 2, 0, 0, 0, now.Location())
+
+// 午後11時に実行
+next := time.Date(now.Year(), now.Month(), now.Day(), 23, 0, 0, 0, now.Location())
 ```
 
-例：
-- `1 * time.Hour` - 1時間ごと
-- `6 * time.Hour` - 6時間ごと
-- `12 * time.Hour` - 12時間ごと
-- `24 * time.Hour` - 24時間ごと（デフォルト）
+**古い予約データの削除の実行時刻:**
+```go
+// 午前3時10分に実行
+next := time.Date(now.Year(), now.Month(), now.Day(), 3, 10, 0, 0, now.Location())
+```
+
+時刻を変更する例：
+```go
+// 午前4時30分に実行
+next := time.Date(now.Year(), now.Month(), now.Day(), 4, 30, 0, 0, now.Location())
+```
 
 ## メリット
 

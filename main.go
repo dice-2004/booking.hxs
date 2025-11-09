@@ -105,12 +105,28 @@ func main() {
 		}
 	}()
 
-	// 定期的に期限切れ予約を自動完了（1日1回）
+	// 定期的に期限切れ予約を自動完了（毎日午前3時）
 	go func() {
-		ticker := time.NewTicker(24 * time.Hour)
-		defer ticker.Stop()
 		for {
-			// 即座に1回実行してから定期実行
+			now := time.Now()
+			// 次の午前3時を計算
+			next := time.Date(now.Year(), now.Month(), now.Day(), 3, 0, 0, 0, now.Location())
+			if !now.Before(next) {
+				// 今日の3時を過ぎている場合は明日の3時
+				next = next.Add(24 * time.Hour)
+			}
+
+			// 起動直後の場合は即座に実行、それ以外は次の3時まで待機
+			if now.Hour() == 0 && now.Minute() < 5 {
+				// 起動直後（深夜0時台の最初の5分間）なら即座に実行
+				log.Println("Startup: Running initial cleanup tasks...")
+			} else {
+				// 次の実行時刻まで待機
+				duration := time.Until(next)
+				log.Printf("Next auto-complete scheduled at: %s (in %v)", next.Format("2006-01-02 15:04:05"), duration)
+				time.Sleep(duration)
+			}
+
 			// 終了時刻が過ぎたpending予約を自動完了
 			completedCount, err := store.AutoCompleteExpiredReservations()
 			if err != nil {
@@ -120,19 +136,34 @@ func main() {
 				if err := store.Save(); err != nil {
 					log.Printf("Failed to save after auto-completion: %v", err)
 				}
+			} else {
+				log.Println("Auto-complete check completed: no expired reservations found")
 			}
-
-			// 次のティックまで待機
-			<-ticker.C
 		}
 	}()
 
-	// 定期的に古い予約データをクリーンアップ（1日1回）
+	// 定期的に古い予約データをクリーンアップ（毎日午前3時10分）
 	go func() {
-		ticker := time.NewTicker(24 * time.Hour)
-		defer ticker.Stop()
 		for {
-			// 即座に1回実行してから定期実行
+			now := time.Now()
+			// 次の午前3時10分を計算
+			next := time.Date(now.Year(), now.Month(), now.Day(), 3, 10, 0, 0, now.Location())
+			if !now.Before(next) {
+				// 今日の3時10分を過ぎている場合は明日の3時10分
+				next = next.Add(24 * time.Hour)
+			}
+
+			// 起動直後の場合は即座に実行、それ以外は次の3時10分まで待機
+			if now.Hour() == 0 && now.Minute() < 5 {
+				// 起動直後（深夜0時台の最初の5分間）なら即座に実行
+				log.Println("Startup: Running initial cleanup tasks...")
+			} else {
+				// 次の実行時刻まで待機
+				duration := time.Until(next)
+				log.Printf("Next cleanup scheduled at: %s (in %v)", next.Format("2006-01-02 15:04:05"), duration)
+				time.Sleep(duration)
+			}
+
 			// 古い完了済み・キャンセル済み予約を削除（30日以上前）
 			deletedCount, err := store.CleanupOldReservations(30)
 			if err != nil {
@@ -142,10 +173,9 @@ func main() {
 				if err := store.Save(); err != nil {
 					log.Printf("Failed to save after cleanup: %v", err)
 				}
+			} else {
+				log.Println("Cleanup check completed: no old reservations to remove")
 			}
-
-			// 次のティックまで待機
-			<-ticker.C
 		}
 	}()
 
