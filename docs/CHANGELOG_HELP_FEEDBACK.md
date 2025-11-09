@@ -65,18 +65,18 @@
 
 1. ユーザーが `/feedback` コマンドを実行
    - コマンド自体は本人にしか見えない
-   
+
 2. フィードバックが特定のチャンネルに転送される
    - 送信者の情報（ユーザーID、ユーザー名など）は含まれない
    - タイムスタンプのみが記録される
-   
+
 3. 送信者に確認メッセージが表示される
    ```
    ✅ フィードバックを送信しました
-   
+
    ご意見ありがとうございます。
    あなたのフィードバックは匿名で運営チームに届けられました。
-   
+
    今後のシステム改善に活用させていただきます。
    ```
 
@@ -236,7 +236,7 @@ import (
 1. **機能リストの更新**
    ```markdown
    ## 機能
-   
+
    - **予約作成** (`/reserve`)
    - **予約取り消し** (`/cancel`)
    - **予約完了** (`/complete`)
@@ -374,7 +374,7 @@ feedbackEmbed := &discordgo.MessageEmbed{
 }
 
 // ログには長さのみ記録
-logger.LogCommand("feedback", userID, username, channelID, true, "", 
+logger.LogCommand("feedback", userID, username, channelID, true, "",
     map[string]interface{}{"message_length": len(message)})
 ```
 
@@ -422,7 +422,7 @@ $ echo $?
 ### コマンド数の推移
 - **変更前**: 5つのコマンド
   - reserve, cancel, complete, list, my-reservations
-  
+
 - **変更後**: 7つのコマンド (+2)
   - reserve, cancel, complete, list, my-reservations
   - **help** ✨ NEW

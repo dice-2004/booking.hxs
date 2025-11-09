@@ -105,7 +105,7 @@ FEEDBACK_CHANNEL_ID=your_feedback_channel_id_here
 - `GUILD_ID`: BotをテストするDiscordサーバーのID（開発者モードで右クリック→「IDをコピー」）
 - `FEEDBACK_CHANNEL_ID`: フィードバックを受け取るチャンネルのID（開発者モードで右クリック→「IDをコピー」）
 
-**注意**: 
+**注意**:
 - `GUILD_ID`を設定すると、そのサーバー専用のコマンドとして即座に登録されます。空欄にするとグローバルコマンドとして登録されますが、反映に最大1時間かかります。
 - `FEEDBACK_CHANNEL_ID`を設定しないと、`/feedback`コマンドが使用できません。
 
