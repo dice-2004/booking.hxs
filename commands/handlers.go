@@ -567,6 +567,9 @@ func handleHelp(s *discordgo.Session, i *discordgo.InteractionCreate, logger *lo
 		"• フィードバックは完全に匿名で送信されます\n\n" +
 		"**🗑️ データ管理:**\n" +
 		"• 完了・キャンセル済みの予約は30日後に自動削除されます\n" +
+		"• 期限切れの予約は毎日午前3時に自動完了されます\n\n"+
+		"**🗑️ 利用可能チャンネル:**\n" +
+		"• #1375843736864559195で利用が可能です\n" +
 		"• 期限切れの予約は毎日午前3時に自動完了されます"
 
 	respondEphemeral(s, i, helpMessage)
