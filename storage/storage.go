@@ -3,8 +3,10 @@ package storage
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/dice/hxs_reservation_system/models"
 )
@@ -148,4 +150,80 @@ func (s *Storage) CheckOverlap(newReservation *models.Reservation) (*models.Rese
 	}
 
 	return nil, nil
+}
+
+// DeleteReservation は指定されたIDの予約を削除する
+func (s *Storage) DeleteReservation(id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if _, exists := s.Reservations[id]; !exists {
+		return errors.New("reservation not found")
+	}
+
+	delete(s.Reservations, id)
+	return nil
+}
+
+// AutoCompleteExpiredReservations は終了時刻が過ぎたpending予約を自動的にcompletedに変更する
+func (s *Storage) AutoCompleteExpiredReservations() (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	now := time.Now()
+	count := 0
+
+	for _, reservation := range s.Reservations {
+		// pending状態の予約のみ対象
+		if reservation.Status != models.StatusPending {
+			continue
+		}
+
+		// 終了時刻を取得
+		endDateTime, err := reservation.GetEndDateTime()
+		if err != nil {
+			return count, fmt.Errorf("failed to parse end time for reservation %s: %w", reservation.ID, err)
+		}
+
+		// 終了時刻が過ぎていればcompletedに変更
+		if endDateTime.Before(now) {
+			reservation.Status = models.StatusCompleted
+			reservation.UpdatedAt = now
+			count++
+		}
+	}
+
+	return count, nil
+}
+
+// CleanupOldReservations は古い完了済み・キャンセル済み予約を削除する
+// retentionDays: 保持期間（日数）
+func (s *Storage) CleanupOldReservations(retentionDays int) (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	now := time.Now()
+	cutoffTime := now.AddDate(0, 0, -retentionDays)
+	count := 0
+	idsToDelete := make([]string, 0)
+
+	for id, reservation := range s.Reservations {
+		// 完了済みまたはキャンセル済みの予約のみ対象
+		if reservation.Status != models.StatusCompleted && reservation.Status != models.StatusCancelled {
+			continue
+		}
+
+		// UpdatedAtが保持期間を超えていれば削除対象
+		if reservation.UpdatedAt.Before(cutoffTime) {
+			idsToDelete = append(idsToDelete, id)
+			count++
+		}
+	}
+
+	// 削除を実行
+	for _, id := range idsToDelete {
+		delete(s.Reservations, id)
+	}
+
+	return count, nil
 }

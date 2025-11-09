@@ -20,8 +20,8 @@ var (
 	store   *storage.Storage
 	logger  *logging.Logger
 	guildID string
-    // 同一Interactionの重複処理を防止
-    processedInteractions sync.Map
+	// 同一Interactionの重複処理を防止
+	processedInteractions sync.Map
 )
 
 func init() {
@@ -102,6 +102,39 @@ func main() {
 		defer ticker.Stop()
 		for range ticker.C {
 			logger.CleanupOldLogs()
+		}
+	}()
+
+	// 定期的に予約データをクリーンアップ（1時間ごと）
+	go func() {
+		ticker := time.NewTicker(1 * time.Hour)
+		defer ticker.Stop()
+		for {
+			// 即座に1回実行してから定期実行
+			// 1. 終了時刻が過ぎたpending予約を自動完了
+			completedCount, err := store.AutoCompleteExpiredReservations()
+			if err != nil {
+				log.Printf("Failed to auto-complete expired reservations: %v", err)
+			} else if completedCount > 0 {
+				log.Printf("Auto-completed %d expired reservation(s)", completedCount)
+				if err := store.Save(); err != nil {
+					log.Printf("Failed to save after auto-completion: %v", err)
+				}
+			}
+
+			// 2. 古い完了済み・キャンセル済み予約を削除（30日以上前）
+			deletedCount, err := store.CleanupOldReservations(30)
+			if err != nil {
+				log.Printf("Failed to cleanup old reservations: %v", err)
+			} else if deletedCount > 0 {
+				log.Printf("Cleaned up %d old reservation(s)", deletedCount)
+				if err := store.Save(); err != nil {
+					log.Printf("Failed to save after cleanup: %v", err)
+				}
+			}
+
+			// 次のティックまで待機
+			<-ticker.C
 		}
 	}()
 
