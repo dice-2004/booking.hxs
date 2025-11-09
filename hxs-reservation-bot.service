@@ -1,0 +1,39 @@
+[Unit]
+# HXS予約システム Discord Bot
+Description=HXS Reservation System Discord Bot
+# ネットワークが準備できてから起動する
+After=network.target
+
+[Service]
+# 実行するユーザー（rootではなく、普段作業するユーザー名）
+User=hxs
+
+# ボットのプロジェクトがあるディレクトリ
+WorkingDirectory=/home/hxs/booking.hxs
+
+# ボットを起動するコマンド
+# コンパイル済みのバイナリを実行
+ExecStart=/home/hxs/booking.hxs/bin/hxs_reservation_system
+
+# または、毎回ビルドして実行する場合は以下を使用:
+# ExecStart=/snap/bin/go run main.go
+
+# ボットが（エラーなどで）停止した場合、常に再起動する
+Restart=always
+# 再起動するまでの待機時間（秒）
+RestartSec=10
+
+# 環境変数の読み込み（.envファイルがある場合）
+# 注: systemdは.envファイルを自動で読み込まないため、
+# 必要に応じてEnvironmentFileを使用するか、
+# Environment=KEY=VALUE で直接指定します
+# EnvironmentFile=/home/hxs/booking.hxs/.env
+
+# 標準出力とエラー出力をjournaldに送信
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=hxs-bot
+
+[Install]
+# multi-user.targetで起動（通常のLinux起動時）
+WantedBy=multi-user.target
