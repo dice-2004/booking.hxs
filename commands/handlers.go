@@ -13,6 +13,9 @@ import (
 	"github.com/dice/hxs_reservation_system/storage"
 )
 
+// UpdateStatusCallback はBotステータス更新用のコールバック関数
+var UpdateStatusCallback func()
+
 // HandleInteraction はDiscordのインタラクションを処理する
 func HandleInteraction(s *discordgo.Session, i *discordgo.InteractionCreate, store *storage.Storage, logger *logging.Logger, allowedChannelID string) {
 	commandName := i.ApplicationCommandData().Name
@@ -239,6 +242,11 @@ func handleReserve(s *discordgo.Session, i *discordgo.InteractionCreate, store *
 	)
 	// DMから実行された場合も、指定チャンネルに通知
 	s.ChannelMessageSend(allowedChannelID, publicMsg)
+
+	// Botステータスを更新
+	if UpdateStatusCallback != nil {
+		UpdateStatusCallback()
+	}
 }
 
 // handleCancel は予約キャンセルコマンドを処理する
@@ -299,6 +307,11 @@ func handleCancel(s *discordgo.Session, i *discordgo.InteractionCreate, store *s
 	)
 	// DMから実行された場合も、指定チャンネルに通知
 	s.ChannelMessageSend(allowedChannelID, msg)
+
+	// Botステータスを更新
+	if UpdateStatusCallback != nil {
+		UpdateStatusCallback()
+	}
 }
 
 // handleComplete は予約完了コマンドを処理する
@@ -359,6 +372,11 @@ func handleComplete(s *discordgo.Session, i *discordgo.InteractionCreate, store 
 	)
 	// DMから実行された場合も、指定チャンネルに通知
 	s.ChannelMessageSend(allowedChannelID, msg)
+
+	// Botステータスを更新
+	if UpdateStatusCallback != nil {
+		UpdateStatusCallback()
+	}
 }
 
 // handleList はすべての予約一覧を表示する
@@ -567,10 +585,10 @@ func handleHelp(s *discordgo.Session, i *discordgo.InteractionCreate, logger *lo
 		"- フィードバックは完全に匿名で送信されます\n\n" +
 		"## データ管理:\n" +
 		"- 完了・キャンセル済みの予約は30日後に自動削除されます\n" +
-		"- 期限切れの予約は毎日午前3時に自動完了されます\n\n"+
+		"- 期限切れの予約は毎日午前3時に自動完了されます\n\n" +
 		"## 利用可能チャンネル:\n" +
 		"- https://discord.com/channels/1090816023965479035/1375843736864559195で利用が可能です\n" +
-		"- または、認証済みの場合のみDMでも利用可能です\n\n"+
+		"- または、認証済みの場合のみDMでも利用可能です\n\n" +
 		"## 認証方法:\n" +
 		"① botをクリック\n" +
 		"② アプリを追加\n" +

@@ -78,6 +78,14 @@ func main() {
 	}
 	defer dg.Close()
 
+	// Botのステータスを設定
+	updateBotStatus(dg, store)
+
+	// コマンドハンドラーでステータス更新できるようにコールバックを設定
+	commands.UpdateStatusCallback = func() {
+		updateBotStatus(dg, store)
+	}
+
 	log.Println("Bot is now running. Press CTRL+C to exit.")
 
 	// コマンドを登録
@@ -96,6 +104,8 @@ func main() {
 			} else {
 				log.Println("💾 Reservations saved successfully")
 			}
+			// ステータスも更新
+			updateBotStatus(dg, store)
 		}
 	}()
 
@@ -203,6 +213,28 @@ func main() {
 		log.Printf("  %s: %d回", userID, count)
 	}
 	log.Printf("最終更新: %s", stats.LastUpdated.Format("2006-01-02 15:04:05"))
+}
+
+// updateBotStatus はBotのステータスを更新する
+func updateBotStatus(s *discordgo.Session, store *storage.Storage) {
+	allReservations := store.GetAllReservations()
+	pendingCount := 0
+	for _, r := range allReservations {
+		if r.Status == "pending" {
+			pendingCount++
+		}
+	}
+
+	var status string
+	if pendingCount == 0 {
+		status = "面接予約管理 | /help"
+	} else {
+		status = fmt.Sprintf("%d件の予約管理中 | /help", pendingCount)
+	}
+
+	if err := s.UpdateGameStatus(0, status); err != nil {
+		log.Printf("Failed to update status: %v", err)
+	}
 }
 
 func registerCommands(s *discordgo.Session) error {
