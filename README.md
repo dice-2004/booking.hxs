@@ -655,4 +655,6 @@ make vet
 
 ## 作者
 
-dice
+[dice](https://github.com/dice-2004)
+<!-- contributorは以下に追加を -->
+
