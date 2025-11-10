@@ -35,7 +35,7 @@ func HandleInteraction(s *discordgo.Session, i *discordgo.InteractionCreate, sto
 
 	// チャンネル制限チェック（DMは除く）
 	if !isDM && allowedChannelID != "" && channelID != allowedChannelID {
-		respondEphemeral(s, i, "❌ このコマンドはhttps://discord.com/channels/1090816023965479035/1375843736864559195でのみ使用できます。")
+		respondEphemeral(s, i, "❌ このコマンドはhttps://discord.com/channels/1090816023965479035/1375843736864559195、または認証済みのDMでのみ使用できます。")
 		logger.LogCommand(commandName, userID, username, channelID, false, "Not allowed channel", nil)
 		return
 	}
