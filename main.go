@@ -238,6 +238,43 @@ func updateBotStatus(s *discordgo.Session, store *storage.Storage) {
 }
 
 func registerCommands(s *discordgo.Session) error {
+	// 既存のコマンドを削除（重複を防ぐため）
+	log.Println("Removing existing commands...")
+
+	// グローバルコマンドを削除（もし存在すれば）
+	globalCommands, err := s.ApplicationCommands(s.State.User.ID, "")
+	if err != nil {
+		log.Printf("Failed to fetch existing global commands: %v", err)
+	} else {
+		for _, cmd := range globalCommands {
+			err := s.ApplicationCommandDelete(s.State.User.ID, "", cmd.ID)
+			if err != nil {
+				log.Printf("Failed to delete global command %s: %v", cmd.Name, err)
+			} else {
+				log.Printf("Deleted existing global command: %s", cmd.Name)
+			}
+		}
+	}
+
+	// ギルド専用コマンドを削除（GUILD_IDが設定されている場合）
+	if guildID != "" {
+		guildCommands, err := s.ApplicationCommands(s.State.User.ID, guildID)
+		if err != nil {
+			log.Printf("Failed to fetch existing guild commands: %v", err)
+		} else {
+			for _, cmd := range guildCommands {
+				err := s.ApplicationCommandDelete(s.State.User.ID, guildID, cmd.ID)
+				if err != nil {
+					log.Printf("Failed to delete guild command %s: %v", cmd.Name, err)
+				} else {
+					log.Printf("Deleted existing guild command: %s", cmd.Name)
+				}
+			}
+		}
+	}
+
+	log.Println("Registering new commands...")
+
 	commands := []*discordgo.ApplicationCommand{
 		{
 			Name:        "reserve",
