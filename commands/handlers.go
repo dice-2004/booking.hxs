@@ -537,7 +537,7 @@ func respondEphemeral(s *discordgo.Session, i *discordgo.InteractionCreate, mess
 // handleHelp はヘルプコマンドを処理する（コマンドを打った人にしか見えない）
 func handleHelp(s *discordgo.Session, i *discordgo.InteractionCreate, logger *logging.Logger, isDM bool) {
 	helpMessage := "📖 **面接予約システム - ヘルプ**\n\n" +
-		"### 利用可能なコマンド:" +
+		"### 利用可能なコマンド:\n" +
 		"**/reserve**\n" +
 		"> 部室の予約を作成します\n" +
 		"> • `date`: 予約日（YYYY-MM-DD または YYYY/MM/DD、例: 2025-10-15）\n" +
@@ -561,14 +561,14 @@ func handleHelp(s *discordgo.Session, i *discordgo.InteractionCreate, logger *lo
 		"> • `message`: フィードバック内容\n\n" +
 		"**/help**\n" +
 		"> このヘルプメッセージを表示します\n\n" +
-		"### プライバシー:" +
+		"### プライバシー:\n" +
 		"> • /list、/my-reservations、/help、/feedback は自分だけに表示されます\n" +
 		"> • 予約作成時、予約IDは予約者だけに通知されます\n" +
 		"> • フィードバックは完全に匿名で送信されます\n\n" +
-		"### データ管理:" +
+		"### データ管理:\n" +
 		"> • 完了・キャンセル済みの予約は30日後に自動削除されます\n" +
 		"> • 期限切れの予約は毎日午前3時に自動完了されます\n\n"+
-		"### 利用可能チャンネル:" +
+		"### 利用可能チャンネル:\n" +
 		"> • https://discord.com/channels/1090816023965479035/1375843736864559195で利用が可能です\n" +
 		"> • または、認証済みの場合のみDMでも利用可能です\n\n"
 
