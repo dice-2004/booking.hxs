@@ -540,37 +540,37 @@ func handleHelp(s *discordgo.Session, i *discordgo.InteractionCreate, logger *lo
 		"## 利用可能なコマンド:\n" +
 		"**/reserve**\n" +
 		"> 部室の予約を作成します\n" +
-		"> • `date`: 予約日（YYYY-MM-DD または YYYY/MM/DD、例: 2025-10-15）\n" +
-		"> • `start_time`: 開始時間（HH:MM形式、例: 14:00）\n" +
-		"> • `end_time`: 終了時間（HH:MM形式、例: 15:00）※省略時は開始時刻+1時間\n" +
-		"> • `comment`: コメント（任意）\n\n" +
+		"> - `date`: 予約日（YYYY-MM-DD または YYYY/MM/DD、例: 2025-10-15）\n" +
+		"> - `start_time`: 開始時間（HH:MM形式、例: 14:00）\n" +
+		"> - `end_time`: 終了時間（HH:MM形式、例: 15:00）※省略時は開始時刻+1時間\n" +
+		"> - `comment`: コメント（任意）\n\n" +
 		"**/cancel**\n" +
 		"> 予約を取り消します\n" +
-		"> • `reservation_id`: 予約ID\n" +
-		"> • `comment`: コメント（任意）\n\n" +
+		"> - `reservation_id`: 予約ID\n" +
+		"> - `comment`: コメント（任意）\n\n" +
 		"**/complete**\n" +
 		"> 予約を完了にします\n" +
-		"> • `reservation_id`: 予約ID\n" +
-		"> • `comment`: コメント（任意）\n\n" +
+		"> - `reservation_id`: 予約ID\n" +
+		"> - `comment`: コメント（任意）\n\n" +
 		"**/list**\n" +
 		"> すべての予約を表示します（自分だけに表示されます）\n\n" +
 		"**/my-reservations**\n" +
 		"> 自分の予約を表示します（自分だけに表示されます）\n\n" +
 		"**/feedback**\n" +
 		"> システムへのご意見・ご要望を匿名で送信します\n" +
-		"> • `message`: フィードバック内容\n\n" +
+		"> - `message`: フィードバック内容\n\n" +
 		"**/help**\n" +
 		"> このヘルプメッセージを表示します\n\n" +
 		"## プライバシー:\n" +
-		"> • /list、/my-reservations、/help、/feedback は自分だけに表示されます\n" +
-		"> • 予約作成時、予約IDは予約者だけに通知されます\n" +
-		"> • フィードバックは完全に匿名で送信されます\n\n" +
+		"- /list、/my-reservations、/help、/feedback は自分だけに表示されます\n" +
+		"- 予約作成時、予約IDは予約者だけに通知されます\n" +
+		"- フィードバックは完全に匿名で送信されます\n\n" +
 		"## データ管理:\n" +
-		"> • 完了・キャンセル済みの予約は30日後に自動削除されます\n" +
-		"> • 期限切れの予約は毎日午前3時に自動完了されます\n\n"+
+		"- 完了・キャンセル済みの予約は30日後に自動削除されます\n" +
+		"- 期限切れの予約は毎日午前3時に自動完了されます\n\n"+
 		"## 利用可能チャンネル:\n" +
-		"> • https://discord.com/channels/1090816023965479035/1375843736864559195で利用が可能です\n" +
-		"> • または、認証済みの場合のみDMでも利用可能です\n\n"
+		"- https://discord.com/channels/1090816023965479035/1375843736864559195で利用が可能です\n" +
+		"- または、認証済みの場合のみDMでも利用可能です\n\n"
 
 	respondEphemeral(s, i, helpMessage)
 
