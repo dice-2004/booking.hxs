@@ -65,6 +65,14 @@ func main() {
 		if _, loaded := processedInteractions.LoadOrStore(i.ID, struct{}{}); loaded {
 			return
 		}
+
+		// Autocomplete処理
+		if i.Type == discordgo.InteractionApplicationCommandAutocomplete {
+			commands.HandleAutocomplete(s, i)
+			return
+		}
+
+		// 通常のコマンド処理
 		commands.HandleInteraction(s, i, store, logger, allowedChannelID)
 	})
 
@@ -281,22 +289,25 @@ func registerCommands(s *discordgo.Session) error {
 			Description: "部室の予約を作成します",
 			Options: []*discordgo.ApplicationCommandOption{
 				{
-					Type:        discordgo.ApplicationCommandOptionString,
-					Name:        "date",
-					Description: "予約日（YYYY-MM-DD または YYYY/MM/DD、例: 2025-10-15 または 2025/10/15）",
-					Required:    true,
+					Type:         discordgo.ApplicationCommandOptionString,
+					Name:         "date",
+					Description:  "予約日（YYYY-MM-DD または YYYY/MM/DD、例: 2025-10-15 または 2025/10/15）",
+					Required:     true,
+					Autocomplete: true,
 				},
 				{
-					Type:        discordgo.ApplicationCommandOptionString,
-					Name:        "start_time",
-					Description: "開始時間（HH:MM形式、例: 14:00）",
-					Required:    true,
+					Type:         discordgo.ApplicationCommandOptionString,
+					Name:         "start_time",
+					Description:  "開始時間（HH:MM形式、例: 14:00）",
+					Required:     true,
+					Autocomplete: true,
 				},
 				{
-					Type:        discordgo.ApplicationCommandOptionString,
-					Name:        "end_time",
-					Description: "終了時間（HH:MM形式、例: 15:00）※省略時は開始時刻+1時間",
-					Required:    false,
+					Type:         discordgo.ApplicationCommandOptionString,
+					Name:         "end_time",
+					Description:  "終了時間（HH:MM形式、例: 15:00）※省略時は開始時刻+1時間",
+					Required:     false,
+					Autocomplete: true,
 				},
 				{
 					Type:        discordgo.ApplicationCommandOptionString,
