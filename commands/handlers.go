@@ -19,7 +19,7 @@ var UpdateStatusCallback func()
 // HandleAutocomplete はオートコンプリートのリクエストを処理する
 func HandleAutocomplete(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	data := i.ApplicationCommandData()
-	
+
 	// 現在フォーカスされているオプションを取得
 	var focusedOption *discordgo.ApplicationCommandInteractionDataOption
 	for _, opt := range data.Options {
@@ -28,32 +28,32 @@ func HandleAutocomplete(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			break
 		}
 	}
-	
+
 	if focusedOption == nil {
 		return
 	}
-	
+
 	var choices []*discordgo.ApplicationCommandOptionChoice
-	
+
 	switch focusedOption.Name {
 	case "date":
 		choices = getDateSuggestions(focusedOption.StringValue())
 	case "start_time", "end_time":
 		choices = getTimeSuggestions(focusedOption.StringValue())
 	}
-	
+
 	// 最大25個まで
 	if len(choices) > 25 {
 		choices = choices[:25]
 	}
-	
+
 	err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionApplicationCommandAutocompleteResult,
 		Data: &discordgo.InteractionResponseData{
 			Choices: choices,
 		},
 	})
-	
+
 	if err != nil {
 		// Autocompleteのエラーはログのみ
 		fmt.Printf("Failed to respond to autocomplete: %v\n", err)
@@ -65,7 +65,7 @@ func getDateSuggestions(input string) []*discordgo.ApplicationCommandOptionChoic
 	now := time.Now()
 	jst := time.FixedZone("Asia/Tokyo", 9*60*60)
 	nowJST := now.In(jst)
-	
+
 	suggestions := []*discordgo.ApplicationCommandOptionChoice{
 		{
 			Name:  fmt.Sprintf("今日 (%s)", nowJST.Format("2006-01-02")),
@@ -80,7 +80,7 @@ func getDateSuggestions(input string) []*discordgo.ApplicationCommandOptionChoic
 			Value: nowJST.AddDate(0, 0, 2).Format("2006-01-02"),
 		},
 	}
-	
+
 	// 今週の残りの日を追加
 	for i := 3; i < 7; i++ {
 		nextDay := nowJST.AddDate(0, 0, i)
@@ -90,7 +90,7 @@ func getDateSuggestions(input string) []*discordgo.ApplicationCommandOptionChoic
 			Value: nextDay.Format("2006-01-02"),
 		})
 	}
-	
+
 	// 来週の日曜日
 	daysUntilNextSunday := (7 - int(nowJST.Weekday())) % 7
 	if daysUntilNextSunday == 0 {
@@ -101,14 +101,14 @@ func getDateSuggestions(input string) []*discordgo.ApplicationCommandOptionChoic
 		Name:  fmt.Sprintf("来週日曜日 (%s)", nextSunday.Format("2006-01-02")),
 		Value: nextSunday.Format("2006-01-02"),
 	})
-	
+
 	// 来週の月曜日
 	nextMonday := nowJST.AddDate(0, 0, daysUntilNextSunday+1)
 	suggestions = append(suggestions, &discordgo.ApplicationCommandOptionChoice{
 		Name:  fmt.Sprintf("来週月曜日 (%s)", nextMonday.Format("2006-01-02")),
 		Value: nextMonday.Format("2006-01-02"),
 	})
-	
+
 	// 入力がある場合、フィルタリング
 	if input != "" {
 		var filtered []*discordgo.ApplicationCommandOptionChoice
@@ -119,7 +119,7 @@ func getDateSuggestions(input string) []*discordgo.ApplicationCommandOptionChoic
 		}
 		return filtered
 	}
-	
+
 	return suggestions
 }
 
@@ -140,7 +140,7 @@ func getTimeSuggestions(input string) []*discordgo.ApplicationCommandOptionChoic
 		{Name: "20:00", Value: "20:00"},
 		{Name: "21:00", Value: "21:00"},
 	}
-	
+
 	// 30分刻みも追加
 	halfHours := []*discordgo.ApplicationCommandOptionChoice{
 		{Name: "09:30", Value: "09:30"},
@@ -156,9 +156,9 @@ func getTimeSuggestions(input string) []*discordgo.ApplicationCommandOptionChoic
 		{Name: "19:30", Value: "19:30"},
 		{Name: "20:30", Value: "20:30"},
 	}
-	
+
 	suggestions = append(suggestions, halfHours...)
-	
+
 	// 入力がある場合、フィルタリング
 	if input != "" {
 		var filtered []*discordgo.ApplicationCommandOptionChoice
@@ -172,7 +172,7 @@ func getTimeSuggestions(input string) []*discordgo.ApplicationCommandOptionChoic
 			return filtered
 		}
 	}
-	
+
 	return suggestions
 }
 
@@ -318,7 +318,7 @@ func handleReserve(s *discordgo.Session, i *discordgo.InteractionCreate, store *
 	// 過去日時のチェック
 	jst := time.FixedZone("Asia/Tokyo", 9*60*60)
 	nowJST := time.Now().In(jst)
-	
+
 	// 予約日時を構築（日付 + 開始時刻）
 	reservationDateTime := time.Date(
 		reservationDate.Year(),
@@ -328,7 +328,7 @@ func handleReserve(s *discordgo.Session, i *discordgo.InteractionCreate, store *
 		startTimeParsed.Minute(),
 		0, 0, jst,
 	)
-	
+
 	// 現在時刻より過去の場合はエラー
 	if reservationDateTime.Before(nowJST) {
 		errorMsg := fmt.Sprintf("❌ 過去の日時は予約できません\n\n"+

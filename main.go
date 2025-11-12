@@ -65,13 +65,13 @@ func main() {
 		if _, loaded := processedInteractions.LoadOrStore(i.ID, struct{}{}); loaded {
 			return
 		}
-		
+
 		// Autocomplete処理
 		if i.Type == discordgo.InteractionApplicationCommandAutocomplete {
 			commands.HandleAutocomplete(s, i)
 			return
 		}
-		
+
 		// 通常のコマンド処理
 		commands.HandleInteraction(s, i, store, logger, allowedChannelID)
 	})
