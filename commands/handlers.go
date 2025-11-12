@@ -16,6 +16,166 @@ import (
 // UpdateStatusCallback はBotステータス更新用のコールバック関数
 var UpdateStatusCallback func()
 
+// HandleAutocomplete はオートコンプリートのリクエストを処理する
+func HandleAutocomplete(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	data := i.ApplicationCommandData()
+	
+	// 現在フォーカスされているオプションを取得
+	var focusedOption *discordgo.ApplicationCommandInteractionDataOption
+	for _, opt := range data.Options {
+		if opt.Focused {
+			focusedOption = opt
+			break
+		}
+	}
+	
+	if focusedOption == nil {
+		return
+	}
+	
+	var choices []*discordgo.ApplicationCommandOptionChoice
+	
+	switch focusedOption.Name {
+	case "date":
+		choices = getDateSuggestions(focusedOption.StringValue())
+	case "start_time", "end_time":
+		choices = getTimeSuggestions(focusedOption.StringValue())
+	}
+	
+	// 最大25個まで
+	if len(choices) > 25 {
+		choices = choices[:25]
+	}
+	
+	err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionApplicationCommandAutocompleteResult,
+		Data: &discordgo.InteractionResponseData{
+			Choices: choices,
+		},
+	})
+	
+	if err != nil {
+		// Autocompleteのエラーはログのみ
+		fmt.Printf("Failed to respond to autocomplete: %v\n", err)
+	}
+}
+
+// getDateSuggestions は日付の候補を生成する
+func getDateSuggestions(input string) []*discordgo.ApplicationCommandOptionChoice {
+	now := time.Now()
+	jst := time.FixedZone("Asia/Tokyo", 9*60*60)
+	nowJST := now.In(jst)
+	
+	suggestions := []*discordgo.ApplicationCommandOptionChoice{
+		{
+			Name:  fmt.Sprintf("今日 (%s)", nowJST.Format("2006-01-02")),
+			Value: nowJST.Format("2006-01-02"),
+		},
+		{
+			Name:  fmt.Sprintf("明日 (%s)", nowJST.AddDate(0, 0, 1).Format("2006-01-02")),
+			Value: nowJST.AddDate(0, 0, 1).Format("2006-01-02"),
+		},
+		{
+			Name:  fmt.Sprintf("明後日 (%s)", nowJST.AddDate(0, 0, 2).Format("2006-01-02")),
+			Value: nowJST.AddDate(0, 0, 2).Format("2006-01-02"),
+		},
+	}
+	
+	// 今週の残りの日を追加
+	for i := 3; i < 7; i++ {
+		nextDay := nowJST.AddDate(0, 0, i)
+		weekday := []string{"日", "月", "火", "水", "木", "金", "土"}[nextDay.Weekday()]
+		suggestions = append(suggestions, &discordgo.ApplicationCommandOptionChoice{
+			Name:  fmt.Sprintf("%s曜日 (%s)", weekday, nextDay.Format("2006-01-02")),
+			Value: nextDay.Format("2006-01-02"),
+		})
+	}
+	
+	// 来週の日曜日
+	daysUntilNextSunday := (7 - int(nowJST.Weekday())) % 7
+	if daysUntilNextSunday == 0 {
+		daysUntilNextSunday = 7
+	}
+	nextSunday := nowJST.AddDate(0, 0, daysUntilNextSunday)
+	suggestions = append(suggestions, &discordgo.ApplicationCommandOptionChoice{
+		Name:  fmt.Sprintf("来週日曜日 (%s)", nextSunday.Format("2006-01-02")),
+		Value: nextSunday.Format("2006-01-02"),
+	})
+	
+	// 来週の月曜日
+	nextMonday := nowJST.AddDate(0, 0, daysUntilNextSunday+1)
+	suggestions = append(suggestions, &discordgo.ApplicationCommandOptionChoice{
+		Name:  fmt.Sprintf("来週月曜日 (%s)", nextMonday.Format("2006-01-02")),
+		Value: nextMonday.Format("2006-01-02"),
+	})
+	
+	// 入力がある場合、フィルタリング
+	if input != "" {
+		var filtered []*discordgo.ApplicationCommandOptionChoice
+		for _, choice := range suggestions {
+			if strings.Contains(choice.Value.(string), input) || strings.Contains(choice.Name, input) {
+				filtered = append(filtered, choice)
+			}
+		}
+		return filtered
+	}
+	
+	return suggestions
+}
+
+// getTimeSuggestions は時刻の候補を生成する
+func getTimeSuggestions(input string) []*discordgo.ApplicationCommandOptionChoice {
+	suggestions := []*discordgo.ApplicationCommandOptionChoice{
+		{Name: "09:00", Value: "09:00"},
+		{Name: "10:00", Value: "10:00"},
+		{Name: "11:00", Value: "11:00"},
+		{Name: "12:00", Value: "12:00"},
+		{Name: "13:00", Value: "13:00"},
+		{Name: "14:00", Value: "14:00"},
+		{Name: "15:00", Value: "15:00"},
+		{Name: "16:00", Value: "16:00"},
+		{Name: "17:00", Value: "17:00"},
+		{Name: "18:00", Value: "18:00"},
+		{Name: "19:00", Value: "19:00"},
+		{Name: "20:00", Value: "20:00"},
+		{Name: "21:00", Value: "21:00"},
+	}
+	
+	// 30分刻みも追加
+	halfHours := []*discordgo.ApplicationCommandOptionChoice{
+		{Name: "09:30", Value: "09:30"},
+		{Name: "10:30", Value: "10:30"},
+		{Name: "11:30", Value: "11:30"},
+		{Name: "12:30", Value: "12:30"},
+		{Name: "13:30", Value: "13:30"},
+		{Name: "14:30", Value: "14:30"},
+		{Name: "15:30", Value: "15:30"},
+		{Name: "16:30", Value: "16:30"},
+		{Name: "17:30", Value: "17:30"},
+		{Name: "18:30", Value: "18:30"},
+		{Name: "19:30", Value: "19:30"},
+		{Name: "20:30", Value: "20:30"},
+	}
+	
+	suggestions = append(suggestions, halfHours...)
+	
+	// 入力がある場合、フィルタリング
+	if input != "" {
+		var filtered []*discordgo.ApplicationCommandOptionChoice
+		for _, choice := range suggestions {
+			if strings.HasPrefix(choice.Value.(string), input) {
+				filtered = append(filtered, choice)
+			}
+		}
+		// マッチする候補がない場合は、すべて返す
+		if len(filtered) > 0 {
+			return filtered
+		}
+	}
+	
+	return suggestions
+}
+
 // HandleInteraction はDiscordのインタラクションを処理する
 func HandleInteraction(s *discordgo.Session, i *discordgo.InteractionCreate, store *storage.Storage, logger *logging.Logger, allowedChannelID string) {
 	commandName := i.ApplicationCommandData().Name
@@ -122,29 +282,65 @@ func handleReserve(s *discordgo.Session, i *discordgo.InteractionCreate, store *
 	}
 
 	// 日付と時間の形式を検証（YYYY-MM-DD または YYYY/MM/DD を許可）
-	if _, err := time.Parse("2006-01-02", date); err != nil {
+	var reservationDate time.Time
+	if parsedDate, err := time.Parse("2006-01-02", date); err != nil {
 		if t2, err2 := time.Parse("2006/01/02", date); err2 == nil {
 			// 正規化して保存用は YYYY-MM-DD に統一
 			date = t2.Format("2006-01-02")
+			reservationDate = t2
 		} else {
 			errorMsg := "日付の形式が正しくありません（YYYY-MM-DD または YYYY/MM/DD）"
 			logger.LogCommand("reserve", userID, username, i.ChannelID, false, errorMsg, parameters)
 			respondError(s, i, errorMsg)
 			return
 		}
+	} else {
+		reservationDate = parsedDate
 	}
 
-	if _, err := time.Parse("15:04", startTime); err != nil {
+	var startTimeParsed time.Time
+	if t, err := time.Parse("15:04", startTime); err != nil {
 		errorMsg := "開始時間の形式が正しくありません（HH:MM形式で入力してください）"
 		logger.LogCommand("reserve", userID, username, i.ChannelID, false, errorMsg, parameters)
 		respondError(s, i, errorMsg)
 		return
+	} else {
+		startTimeParsed = t
 	}
 
 	if _, err := time.Parse("15:04", endTime); err != nil {
 		errorMsg := "終了時間の形式が正しくありません（HH:MM形式で入力してください）"
 		logger.LogCommand("reserve", userID, username, i.ChannelID, false, errorMsg, parameters)
 		respondError(s, i, errorMsg)
+		return
+	}
+
+	// 過去日時のチェック
+	jst := time.FixedZone("Asia/Tokyo", 9*60*60)
+	nowJST := time.Now().In(jst)
+	
+	// 予約日時を構築（日付 + 開始時刻）
+	reservationDateTime := time.Date(
+		reservationDate.Year(),
+		reservationDate.Month(),
+		reservationDate.Day(),
+		startTimeParsed.Hour(),
+		startTimeParsed.Minute(),
+		0, 0, jst,
+	)
+	
+	// 現在時刻より過去の場合はエラー
+	if reservationDateTime.Before(nowJST) {
+		errorMsg := fmt.Sprintf("❌ 過去の日時は予約できません\n\n"+
+			"**指定された日時:** %s %s\n"+
+			"**現在日時:** %s\n\n"+
+			"現在時刻以降の日時を指定してください。",
+			formatDate(date),
+			startTime,
+			nowJST.Format("2006-01-02 15:04"),
+		)
+		logger.LogCommand("reserve", userID, username, i.ChannelID, false, "Past datetime", parameters)
+		respondEphemeral(s, i, errorMsg)
 		return
 	}
 
