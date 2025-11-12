@@ -38,8 +38,18 @@ func HandleAutocomplete(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	switch focusedOption.Name {
 	case "date":
 		choices = getDateSuggestions(focusedOption.StringValue())
-	case "start_time", "end_time":
-		choices = getTimeSuggestions(focusedOption.StringValue())
+	case "start_time":
+		choices = getTimeSuggestions(focusedOption.StringValue(), "")
+	case "end_time":
+		// end_timeの場合、start_timeを取得して考慮する
+		var startTime string
+		for _, opt := range data.Options {
+			if opt.Name == "start_time" {
+				startTime = opt.StringValue()
+				break
+			}
+		}
+		choices = getTimeSuggestions(focusedOption.StringValue(), startTime)
 	}
 
 	// 最大25個まで
@@ -66,57 +76,106 @@ func getDateSuggestions(input string) []*discordgo.ApplicationCommandOptionChoic
 	jst := time.FixedZone("Asia/Tokyo", 9*60*60)
 	nowJST := now.In(jst)
 
+	// 入力が空または年のみの場合、現在の年をヒントとして表示
+	if input == "" || (len(input) <= 4 && strings.HasPrefix(nowJST.Format("2006"), input)) {
+		suggestions := []*discordgo.ApplicationCommandOptionChoice{
+			{
+				Name:  "今日",
+				Value: nowJST.Format("2006/01/02"),
+			},
+			{
+				Name:  "明日",
+				Value: nowJST.AddDate(0, 0, 1).Format("2006/01/02"),
+			},
+			{
+				Name:  "明後日",
+				Value: nowJST.AddDate(0, 0, 2).Format("2006/01/02"),
+			},
+		}
+
+		// 3日後から30日後まで
+		for i := 3; i <= 30; i++ {
+			// 1,2,3,4週間後は特別なラベル
+			if i%7 == 0 && i <= 28 {
+				week := i / 7
+				suggestions = append(suggestions, &discordgo.ApplicationCommandOptionChoice{
+					Name:  fmt.Sprintf("%d週間後", week),
+					Value: nowJST.AddDate(0, 0, i).Format("2006/01/02"),
+				})
+			} else {
+				suggestions = append(suggestions, &discordgo.ApplicationCommandOptionChoice{
+					Name:  nowJST.AddDate(0, 0, i).Format("2006/01/02"),
+					Value: nowJST.AddDate(0, 0, i).Format("2006/01/02"),
+				})
+			}
+		}
+		return suggestions
+	}
+
+	// 入力がある場合の処理
 	suggestions := []*discordgo.ApplicationCommandOptionChoice{
 		{
-			Name:  fmt.Sprintf("今日 (%s)", nowJST.Format("2006-01-02")),
-			Value: nowJST.Format("2006-01-02"),
+			Name:  "今日",
+			Value: nowJST.Format("2006/01/02"),
 		},
 		{
-			Name:  fmt.Sprintf("明日 (%s)", nowJST.AddDate(0, 0, 1).Format("2006-01-02")),
-			Value: nowJST.AddDate(0, 0, 1).Format("2006-01-02"),
+			Name:  "明日",
+			Value: nowJST.AddDate(0, 0, 1).Format("2006/01/02"),
 		},
 		{
-			Name:  fmt.Sprintf("明後日 (%s)", nowJST.AddDate(0, 0, 2).Format("2006-01-02")),
-			Value: nowJST.AddDate(0, 0, 2).Format("2006-01-02"),
+			Name:  "明後日",
+			Value: nowJST.AddDate(0, 0, 2).Format("2006/01/02"),
 		},
 	}
 
-	// 今週の残りの日を追加
-	for i := 3; i < 7; i++ {
+	// 3日後から6日後まで（YYYY/MM/DD形式で表示）
+	for i := 3; i <= 6; i++ {
 		nextDay := nowJST.AddDate(0, 0, i)
-		weekday := []string{"日", "月", "火", "水", "木", "金", "土"}[nextDay.Weekday()]
 		suggestions = append(suggestions, &discordgo.ApplicationCommandOptionChoice{
-			Name:  fmt.Sprintf("%s曜日 (%s)", weekday, nextDay.Format("2006-01-02")),
-			Value: nextDay.Format("2006-01-02"),
+			Name:  nextDay.Format("2006/01/02"),
+			Value: nextDay.Format("2006/01/02"),
 		})
 	}
 
-	// 来週の日曜日
-	daysUntilNextSunday := (7 - int(nowJST.Weekday())) % 7
-	if daysUntilNextSunday == 0 {
-		daysUntilNextSunday = 7
+	// 1週間後
+	suggestions = append(suggestions, &discordgo.ApplicationCommandOptionChoice{
+		Name:  "1週間後",
+		Value: nowJST.AddDate(0, 0, 7).Format("2006/01/02"),
+	})
+
+	// 8日後から13日後まで（YYYY/MM/DD形式で表示）
+	for i := 8; i <= 13; i++ {
+		nextDay := nowJST.AddDate(0, 0, i)
+		suggestions = append(suggestions, &discordgo.ApplicationCommandOptionChoice{
+			Name:  nextDay.Format("2006/01/02"),
+			Value: nextDay.Format("2006/01/02"),
+		})
 	}
-	nextSunday := nowJST.AddDate(0, 0, daysUntilNextSunday)
+
+	// 2週間後
 	suggestions = append(suggestions, &discordgo.ApplicationCommandOptionChoice{
-		Name:  fmt.Sprintf("来週日曜日 (%s)", nextSunday.Format("2006-01-02")),
-		Value: nextSunday.Format("2006-01-02"),
+		Name:  "2週間後",
+		Value: nowJST.AddDate(0, 0, 14).Format("2006/01/02"),
 	})
 
-	// 来週の月曜日
-	nextMonday := nowJST.AddDate(0, 0, daysUntilNextSunday+1)
-	suggestions = append(suggestions, &discordgo.ApplicationCommandOptionChoice{
-		Name:  fmt.Sprintf("来週月曜日 (%s)", nextMonday.Format("2006-01-02")),
-		Value: nextMonday.Format("2006-01-02"),
-	})
+	// 15日後から30日後まで（YYYY/MM/DD形式で表示）
+	for i := 15; i <= 30; i++ {
+		nextDay := nowJST.AddDate(0, 0, i)
+		suggestions = append(suggestions, &discordgo.ApplicationCommandOptionChoice{
+			Name:  nextDay.Format("2006/01/02"),
+			Value: nextDay.Format("2006/01/02"),
+		})
+	}
 
-	// 入力がある場合、フィルタリング
-	if input != "" {
-		var filtered []*discordgo.ApplicationCommandOptionChoice
-		for _, choice := range suggestions {
-			if strings.Contains(choice.Value.(string), input) || strings.Contains(choice.Name, input) {
-				filtered = append(filtered, choice)
-			}
+	// 入力でフィルタリング
+	var filtered []*discordgo.ApplicationCommandOptionChoice
+	for _, choice := range suggestions {
+		if strings.Contains(choice.Value.(string), input) || strings.Contains(choice.Name, input) {
+			filtered = append(filtered, choice)
 		}
+	}
+
+	if len(filtered) > 0 {
 		return filtered
 	}
 
@@ -124,42 +183,49 @@ func getDateSuggestions(input string) []*discordgo.ApplicationCommandOptionChoic
 }
 
 // getTimeSuggestions は時刻の候補を生成する
-func getTimeSuggestions(input string) []*discordgo.ApplicationCommandOptionChoice {
+// startTimeが指定されている場合（end_timeの入力時）、それより後の時刻のみ返す
+func getTimeSuggestions(input string, startTime string) []*discordgo.ApplicationCommandOptionChoice {
+	// 時刻を時間順に並べる（00分と30分を交互に）
 	suggestions := []*discordgo.ApplicationCommandOptionChoice{
 		{Name: "09:00", Value: "09:00"},
+		{Name: "09:30", Value: "09:30"},
 		{Name: "10:00", Value: "10:00"},
+		{Name: "10:30", Value: "10:30"},
 		{Name: "11:00", Value: "11:00"},
+		{Name: "11:30", Value: "11:30"},
 		{Name: "12:00", Value: "12:00"},
+		{Name: "12:30", Value: "12:30"},
 		{Name: "13:00", Value: "13:00"},
+		{Name: "13:30", Value: "13:30"},
 		{Name: "14:00", Value: "14:00"},
+		{Name: "14:30", Value: "14:30"},
 		{Name: "15:00", Value: "15:00"},
+		{Name: "15:30", Value: "15:30"},
 		{Name: "16:00", Value: "16:00"},
+		{Name: "16:30", Value: "16:30"},
 		{Name: "17:00", Value: "17:00"},
+		{Name: "17:30", Value: "17:30"},
 		{Name: "18:00", Value: "18:00"},
+		{Name: "18:30", Value: "18:30"},
 		{Name: "19:00", Value: "19:00"},
+		{Name: "19:30", Value: "19:30"},
 		{Name: "20:00", Value: "20:00"},
+		{Name: "20:30", Value: "20:30"},
 		{Name: "21:00", Value: "21:00"},
 	}
 
-	// 30分刻みも追加
-	halfHours := []*discordgo.ApplicationCommandOptionChoice{
-		{Name: "09:30", Value: "09:30"},
-		{Name: "10:30", Value: "10:30"},
-		{Name: "11:30", Value: "11:30"},
-		{Name: "12:30", Value: "12:30"},
-		{Name: "13:30", Value: "13:30"},
-		{Name: "14:30", Value: "14:30"},
-		{Name: "15:30", Value: "15:30"},
-		{Name: "16:30", Value: "16:30"},
-		{Name: "17:30", Value: "17:30"},
-		{Name: "18:30", Value: "18:30"},
-		{Name: "19:30", Value: "19:30"},
-		{Name: "20:30", Value: "20:30"},
+	// end_timeの場合、start_timeより後の時刻のみフィルタリング
+	if startTime != "" {
+		var filtered []*discordgo.ApplicationCommandOptionChoice
+		for _, choice := range suggestions {
+			if choice.Value.(string) > startTime {
+				filtered = append(filtered, choice)
+			}
+		}
+		suggestions = filtered
 	}
 
-	suggestions = append(suggestions, halfHours...)
-
-	// 入力がある場合、フィルタリング
+	// 入力がある場合、さらにフィルタリング
 	if input != "" {
 		var filtered []*discordgo.ApplicationCommandOptionChoice
 		for _, choice := range suggestions {
@@ -167,7 +233,7 @@ func getTimeSuggestions(input string) []*discordgo.ApplicationCommandOptionChoic
 				filtered = append(filtered, choice)
 			}
 		}
-		// マッチする候補がない場合は、すべて返す
+		// マッチする候補がある場合はそれを返す
 		if len(filtered) > 0 {
 			return filtered
 		}
@@ -312,6 +378,20 @@ func handleReserve(s *discordgo.Session, i *discordgo.InteractionCreate, store *
 		errorMsg := "終了時間の形式が正しくありません（HH:MM形式で入力してください）"
 		logger.LogCommand("reserve", userID, username, i.ChannelID, false, errorMsg, parameters)
 		respondError(s, i, errorMsg)
+		return
+	}
+
+	// 終了時刻が開始時刻より前または同じ時刻でないかチェック
+	if endTime <= startTime {
+		errorMsg := fmt.Sprintf("❌ 終了時刻は開始時刻より後である必要があります\n\n"+
+			"**開始時刻:** %s\n"+
+			"**終了時刻:** %s\n\n"+
+			"終了時刻を開始時刻より後の時刻に設定してください。",
+			startTime,
+			endTime,
+		)
+		logger.LogCommand("reserve", userID, username, i.ChannelID, false, "End time before start time", parameters)
+		respondEphemeral(s, i, errorMsg)
 		return
 	}
 
