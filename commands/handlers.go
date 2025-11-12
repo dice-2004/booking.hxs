@@ -491,7 +491,7 @@ func formatComment(comment string) string {
 	if comment == "" {
 		return ""
 	}
-	return fmt.Sprintf("コメント: %s", comment)
+	return fmt.Sprintf("💬   %s", comment)
 }
 
 func formatDate(date string) string {
