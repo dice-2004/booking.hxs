@@ -15,7 +15,7 @@ reservations*.json
 *.dll
 *.so
 *.dylib
-hxs_reservation_system
+booking.hxs
 bin/
 tmp/
 

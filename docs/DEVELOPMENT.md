@@ -4,18 +4,17 @@
 
 ## 📑 目次
 
-- [開発環境の管理](#開発環境の管理)
-- [環境の切り替え](#環境の切り替え)
-- [依存関係の管理](#依存関係の管理)
-- [開発ワークフロー](#開発ワークフロー)
-- [ホットリロード](#ホットリロード)
-- [コードの品質管理](#コードの品質管理)
-- [プロジェクト構造](#プロジェクト構造)
-- [カスタマイズ](#カスタマイズ)
 
----
 
-## 開発環境の管理
+## 🆕 UI/UX仕様・開発ルール（2025年11月更新）
+
+- すべてのDiscord埋め込みメッセージは「部室予約システム | コマンド名」形式のフッター付きで統一されています。
+- `/list`・`/my-reservations`コマンドは「部室予約システム | list | 予約 X/Y」など進捗付きフッターを表示します。
+- 予約一覧が10件以上の場合、Ephemeralメッセージ（実行者のみに表示）で複数メッセージに分割して表示されます。
+- Ephemeralメッセージは実行者のみに表示され、他のユーザーには見えません。
+- コマンド登録時に一部失敗しても他のコマンドは登録され、エラーはログに記録されます。
+- 予約情報の表示レイアウトは`/reserve`コマンドのフォーマット（Fields, Inline: true/false）に統一されています。
+
 
 ### Go Modulesによる依存関係管理
 
@@ -279,7 +278,7 @@ booking.hxs/
 │   ├── .env.example           # 環境変数テンプレート
 │   ├── .env.development       # 開発環境
 │   ├── .env.production        # 本番環境
-│   ├── hxs-reservation-bot.service  # systemdサービス
+│   ├── booking-hxs.service    # systemdサービス
 │   └── .air.toml              # ホットリロード設定
 │
 ├── docs/                      # ドキュメント
@@ -432,7 +431,7 @@ LOG_LEVEL=debug
 tail -f logs/commands_2025-11.log | grep '"success":false'
 
 # systemdログ（本番環境）
-sudo journalctl -u hxs-reservation-bot -f
+sudo journalctl -u booking-hxs -f
 ```
 
 ---
@@ -525,7 +524,7 @@ air
 ## 📁 プロジェクト構造
 
 ```
-hxs_reservation_system/
+booking.hxs/
 ├── .env                      # 現在の環境設定（Git除外）
 ├── .env.example              # 設定テンプレート
 ├── .env.development          # 開発環境設定
@@ -594,7 +593,7 @@ reservations*.json
 make build
 
 # 4. 実行
-./bin/hxs_reservation_system
+./bin/booking.hxs
 ```
 
 ### Dockerを使用する場合
@@ -605,13 +604,13 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN go build -o hxs_reservation_system main.go
+RUN go build -o booking.hxs main.go
 
 FROM alpine:latest
 WORKDIR /app
-COPY --from=builder /app/hxs_reservation_system .
+COPY --from=builder /app/booking.hxs .
 COPY .env.production .env
-CMD ["./hxs_reservation_system"]
+CMD ["./booking.hxs"]
 ```
 
 ## 💡 開発ワークフロー例
@@ -650,7 +649,7 @@ make test
 # 4. 本番環境でテスト
 ./switch_env.sh production
 make build
-./bin/hxs_reservation_system
+./bin/booking.hxs
 ```
 
 ## 🆘 トラブルシューティング
