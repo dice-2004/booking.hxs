@@ -1,6 +1,6 @@
 [Unit]
 # HXS予約システム Discord Bot
-Description=HXS Reservation System Discord Bot
+Description=Booking.hxs - Discord Reservation Bot
 # ネットワークが準備できてから起動する
 After=network.target
 
@@ -18,8 +18,8 @@ WorkingDirectory=/home/hxs/booking.hxs
 # ボットを起動するコマンド
 # コンパイル済みのバイナリを実行
 # ⚠️ 重要: 実際のバイナリパスに変更してください
-# 例: ExecStart=/home/dice/programs/booking.hxs/bin/hxs_reservation_system
-ExecStart=/home/hxs/booking.hxs/bin/hxs_reservation_system
+# 例: ExecStart=/home/dice/programs/booking.hxs/bin/booking.hxs
+ExecStart=/home/hxs/booking.hxs/bin/booking.hxs
 
 # または、毎回ビルドして実行する場合は以下を使用:
 # ExecStart=/snap/bin/go run main.go
