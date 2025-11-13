@@ -321,7 +321,8 @@ cp logs/commands_2025-11.log backups/
 cp reservations_backup_20251109.json reservations.json
 
 # Botを再起動して変更を反映
-systemctl restart hxs-reservation-bot
+# または systemd経由で再起動
+systemctl restart booking-hxs
 ```
 
 ---

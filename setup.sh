@@ -79,10 +79,10 @@ fi
 
 # 8. ビルドテスト
 echo -e "${YELLOW}8. ビルドテストを実行中...${NC}"
-go build -o bin/hxs_reservation_system main.go
+go build -o bin/booking.hxs main.go
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ ビルドテスト成功${NC}\n"
-    rm -f bin/hxs_reservation_system
+    rm -f bin/booking.hxs
 else
     echo -e "${RED}エラー: ビルドに失敗しました${NC}"
     exit 1

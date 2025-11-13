@@ -1,6 +1,6 @@
 # 📖 アプリの起動ガイド
 
-このガイドでは、Discord Bot 面接予約システムのセットアップから起動までを詳しく説明します。
+このガイドでは、Discord Bot 部室予約システムのセットアップから起動までを詳しく説明します。
 
 ## 📑 目次
 
@@ -143,7 +143,7 @@ cp config/.env.example .env
 mkdir -p bin logs
 
 # ビルドテスト
-go build -o bin/hxs_reservation_system main.go
+go build -o bin/booking.hxs main.go
 ```
 
 ---
@@ -213,10 +213,10 @@ go run main.go
 
 ```bash
 # ビルド
-go build -o bin/hxs_reservation_system main.go
+go build -o bin/booking.hxs main.go
 
 # 実行
-./bin/hxs_reservation_system
+./bin/booking.hxs
 ```
 
 ### 起動成功の確認

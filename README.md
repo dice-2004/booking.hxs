@@ -1,7 +1,6 @@
-# booking.hxs - Discord Bot 面接予約システム
+# booking.hxs - Discord Bot 部室予約システム
 
-
-Go言語で作成されたDiscord Bot用の面接予約システムです。スラッシュコマンドを使用して、面接の予約、取り消し、完了を管理できます。
+Go言語で作成されたDiscord Bot用の部室予約システムです。スラッシュコマンドを使用して、面接の予約作成、編集、取り消し、完了を管理できます。
 
 ## 🚀 クイックスタート
 
@@ -18,7 +17,6 @@ make run
 
 詳しくは **[📖 アプリの起動ガイド](docs/SETUP.md)** をご覧ください。
 
----
 
 ## 📚 ドキュメント
 
@@ -38,55 +36,29 @@ make run
 | **[💻 開発者ガイド](docs/DEVELOPMENT.md)** | 開発環境、環境切り替え、拡張方法 |
 | **[📋 変更履歴](docs/CHANGELOG.md)** | バージョン履歴と更新内容 |
 
----
 
 ## ✨ 主な機能
 
 ### チャンネル制限機能
-- 特定のチャンネルでのみコマンドを受け付け
-- DMからも利用可能（公開メッセージは指定チャンネルに送信）
-- プライバシー保護のための柔軟な設定
 
 ### 予約管理コマンド
-- **`/reserve`** - 面接の予約を作成
-- **`/cancel`** - 予約をキャンセル
-- **`/complete`** - 予約を完了状態に変更
 
 ### 表示コマンド
-- **`/list`** - すべての予約を表示（実行者のみに表示、DMでも利用可）
-- **`/my-reservations`** - 自分の予約のみを表示（実行者のみに表示、DMでも利用可）
 
 ### ユーティリティコマンド
-- **`/help`** - コマンド一覧とヘルプを表示（実行者のみに表示、DMでも利用可）
-- **`/feedback`** - ご意見・ご要望を匿名で送信（実行者のみに表示、DMでも利用可）
 
 詳細は **[📝 コマンドリファレンス](docs/COMMANDS.md)** をご覧ください。
 
----
 
 ## 🎯 主な特徴
 
-- ✅ **時間の重複チェック** - 重複する予約を自動的に防止
-- ✅ **セキュアな予約ID** - 推測しにくいランダムIDを自動生成
-- ✅ **プライバシー保護** - 予約IDは作成者にのみ通知
-- ✅ **自動クリーンアップ** - 古いデータを30日後に自動削除
-- ✅ **期限切れ自動完了** - 終了時刻が過ぎた予約を毎日午前3時に自動完了
-- ✅ **匿名フィードバック** - ユーザーの意見を完全匿名で収集
-- ✅ **Ephemeralメッセージ** - プライベートコマンドは実行者のみに表示
-- ✅ **環境分離** - 開発環境と本番環境を簡単に切り替え
 
----
 
 ## 🔧 技術スタック
 
-- **言語**: Go 1.21+
-- **ライブラリ**:
   - [discordgo](https://github.com/bwmarrin/discordgo) - Discord API
   - [godotenv](https://github.com/joho/godotenv) - 環境変数管理
-- **データ保存**: JSON ファイル
-- **自動起動**: systemd（本番環境）
 
----
 
 ## 📖 プロジェクト構造
 
@@ -106,7 +78,7 @@ booking.hxs/
 │   ├── .env.example           # 環境変数テンプレート
 │   ├── .env.development       # 開発環境設定
 │   ├── .env.production        # 本番環境設定
-│   └── hxs-reservation-bot.service  # systemdサービスファイル
+│   └── booking-hxs.service    # systemdサービスファイル
 │
 ├── commands/                  # コマンドハンドラー
 ├── models/                    # データモデル
@@ -123,7 +95,6 @@ booking.hxs/
     └── CHANGELOG.md           # 変更履歴
 ```
 
----
 
 ## 🛠️ よく使うコマンド
 
@@ -154,56 +125,36 @@ make help                   # コマンド一覧
 make clean                  # クリーンアップ
 ```
 
----
 
 ## 🚨 トラブルシューティング
 
 ### コマンドが表示されない
-- Botの権限を確認（Use Slash Commands）
-- `GUILD_ID` の設定を確認
-- Botを再招待してみる
 
 ### Botが起動しない
-- `.env` ファイルの `DISCORD_TOKEN` を確認
-- Goのバージョンを確認（1.21以上）
-- `go mod tidy` を実行
 
 ### 予約が保存されない
-- `reservations.json` の書き込み権限を確認
-- ログを確認: `logs/commands_YYYY-MM.log`
 
 詳細は **[📖 アプリの起動ガイド](docs/SETUP.md)** のトラブルシューティングセクションをご覧ください。
 
----
 
 ## 📄 ライセンス
 
 このプロジェクトは MIT ライセンスの下で公開されています。詳細は [LICENSE](LICENSE) ファイルをご覧ください。
 
----
 
 ## 🤝 コントリビューション
 
 バグ報告や機能要望は、Discord Botの `/feedback` コマンドでお送りください（完全匿名）。
 
----
 
 **作成**: 2025年
 **バージョン**: v1.2.0
 **Go**: 1.21+
 
-
 ### 1. 前提条件
 
 - Go 1.21以上がインストールされていること
-- Discord Botトークンを取得済みであること
-
-### 2. Discord Botの作成
-
-1. [Discord Developer Portal](https://discord.com/developers/applications)にアクセス
-2. 「New Application」をクリックして新しいアプリケーションを作成
 3. 左側のメニューから「Bot」を選択
-4. 「Add Bot」をクリック
 5. 「TOKEN」セクションの「Copy」ボタンをクリックしてトークンをコピー
 6. 「Privileged Gateway Intents」セクションで以下を有効化：
    - Server Members Intent
@@ -225,7 +176,7 @@ make clean                  # クリーンアップ
 
 ```bash
 # プロジェクトディレクトリに移動
-cd hxs_reservation_system
+cd booking.hxs
 
 # 自動セットアップスクリプトを実行
 ./setup.sh
@@ -324,7 +275,11 @@ make build
 make start
 
 # または一度にビルド＋実行
-./bin/hxs_reservation_system
+# ビルドして実行
+make run
+
+# または手動でビルドして実行
+./bin/booking.hxs
 ```
 
 **従来の方法:**
@@ -334,8 +289,8 @@ make start
 go run main.go
 
 # ビルドして実行
-go build -o hxs_reservation_system
-./hxs_reservation_system
+go build -o booking.hxs
+./booking.hxs
 ```
 
 ### 依存関係の管理
@@ -456,7 +411,7 @@ go build -o hxs_reservation_system
 ## プロジェクト構造
 
 ```
-hxs_reservation_system/
+booking.hxs/
 ├── main.go                   # エントリーポイント、Bot初期化
 ├── go.mod                    # Go モジュール定義
 ├── go.sum                    # 依存関係のチェックサム
@@ -471,13 +426,33 @@ hxs_reservation_system/
 ├── .env.production           # 本番環境用設定
 ├── .gitignore                # Git除外設定
 ├── reservations.json         # 予約データ（自動生成）
-├── bin/                      # ビルド成果物
+├── bin/
+│   └── booking.hxs           # ビルド済みバイナリ
+├── config/
+│   └── booking-hxs.service   # systemdサービスファイル
+├── docs/                     # ドキュメント
+│   ├── SETUP.md              # セットアップガイド
+│   ├── COMMANDS.md           # コマンドリファレンス
+│   ├── SYSTEMD.md            # systemd設定ガイド
+│   ├── DATA_MANAGEMENT.md    # データ管理ガイド
+│   ├── DEVELOPMENT.md        # 開発者ガイド
+│   └── CHANGELOG.md          # 変更履歴
+├── logs/                     # ログファイル（自動生成）
+│   ├── commands_YYYY-MM.log  # 月別コマンドログ
+│   └── command_stats.json    # コマンド統計
 ├── models/
 │   └── reservation.go        # 予約データモデルとビジネスロジック
 ├── storage/
 │   └── storage.go            # データ永続化処理
-└── commands/
-    └── handlers.go           # コマンドハンドラー
+├── logging/
+│   └── logger.go             # ロギング機能
+└── commands/                 # コマンドハンドラー（モジュール分割）
+    ├── handlers.go           # メインルーター
+    ├── autocomplete.go       # オートコンプリート機能
+    ├── reservation_handlers.go  # 予約CRUD操作
+    ├── list_handlers.go      # 一覧表示機能
+    ├── helper_handlers.go    # ヘルプ・フィードバック
+    └── response_helpers.go   # レスポンス・フォーマット関数
 ```
 
 ## 開発ワークフロー
@@ -633,11 +608,11 @@ make vet
   - `.env.example` - 環境変数の設定例
   - `.env.development` - 開発環境用設定
   - `.env.production` - 本番環境用設定
-  - `hxs-reservation-bot.service` - **systemd サービスファイル**（本番運用時に使用）
+  - `booking-hxs.service` - **systemd サービスファイル**（本番運用時に使用）
   - `.air.toml` - ホットリロード設定
 
 **サービスファイルの使用方法**:
-- Linux サーバーで自動起動させる場合は、`config/hxs-reservation-bot.service` を `/etc/systemd/system/` にコピーして使用します
+- Linux サーバーで自動起動させる場合は、`config/booking-hxs.service` を `/etc/systemd/system/` にコピーして使用します
 - 詳細は [systemd セットアップガイド](docs/SYSTEMD_SETUP.md) を参照してください
 
 ### 🛠️ スクリプト
@@ -658,4 +633,3 @@ make vet
 
 [dice](https://github.com/dice-2004)
 <!-- Collaboratorsは以下に追加を -->
-

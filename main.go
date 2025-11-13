@@ -68,7 +68,7 @@ func main() {
 
 		// Autocomplete処理
 		if i.Type == discordgo.InteractionApplicationCommandAutocomplete {
-			commands.HandleAutocomplete(s, i)
+			commands.HandleAutocomplete(s, i, store)
 			return
 		}
 
@@ -128,6 +128,18 @@ func main() {
 
 	// 定期的に期限切れ予約を自動完了（毎日午前3時）
 	go func() {
+		// 起動時に一度実行
+		log.Println("Startup: Running initial auto-complete check...")
+		completedCount, err := store.AutoCompleteExpiredReservations()
+		if err != nil {
+			log.Printf("❌ Failed to auto-complete expired reservations: %v", err)
+			logger.LogError("ERROR", "main.autoComplete", "Failed to auto-complete expired reservations", err, nil)
+		} else if completedCount > 0 {
+			log.Printf("✅ Auto-completed %d expired reservation(s) and saved", completedCount)
+		} else {
+			log.Println("✓ Auto-complete check completed: no expired reservations found")
+		}
+
 		for {
 			now := time.Now()
 			// 次の午前3時を計算
@@ -137,16 +149,10 @@ func main() {
 				next = next.Add(24 * time.Hour)
 			}
 
-			// 起動直後の場合は即座に実行、それ以外は次の3時まで待機
-			if now.Hour() == 0 && now.Minute() < 5 {
-				// 起動直後（深夜0時台の最初の5分間）なら即座に実行
-				log.Println("Startup: Running initial cleanup tasks...")
-			} else {
-				// 次の実行時刻まで待機
-				duration := time.Until(next)
-				log.Printf("Next auto-complete scheduled at: %s (in %v)", next.Format("2006-01-02 15:04:05"), duration)
-				time.Sleep(duration)
-			}
+			// 次の実行時刻まで待機
+			duration := time.Until(next)
+			log.Printf("Next auto-complete scheduled at: %s (in %v)", next.Format("2006-01-02 15:04:05"), duration)
+			time.Sleep(duration)
 
 			// 終了時刻が過ぎたpending予約を自動完了
 			completedCount, err := store.AutoCompleteExpiredReservations()
@@ -161,6 +167,20 @@ func main() {
 		}
 	}() // 定期的に古い予約データをクリーンアップ（毎日午前3時10分）
 	go func() {
+		// 起動時に一度実行
+		log.Println("Startup: Running initial cleanup check...")
+		deletedCount, err := store.CleanupOldReservations(30)
+		if err != nil {
+			log.Printf("❌ Failed to cleanup old reservations: %v", err)
+			logger.LogError("ERROR", "main.cleanup", "Failed to cleanup old reservations", err, map[string]interface{}{
+				"retention_days": 30,
+			})
+		} else if deletedCount > 0 {
+			log.Printf("🗑️  Cleaned up %d old reservation(s) and saved", deletedCount)
+		} else {
+			log.Println("✓ Cleanup check completed: no old reservations to remove")
+		}
+
 		for {
 			now := time.Now()
 			// 次の午前3時10分を計算
@@ -170,16 +190,10 @@ func main() {
 				next = next.Add(24 * time.Hour)
 			}
 
-			// 起動直後の場合は即座に実行、それ以外は次の3時10分まで待機
-			if now.Hour() == 0 && now.Minute() < 5 {
-				// 起動直後（深夜0時台の最初の5分間）なら即座に実行
-				log.Println("Startup: Running initial cleanup tasks...")
-			} else {
-				// 次の実行時刻まで待機
-				duration := time.Until(next)
-				log.Printf("Next cleanup scheduled at: %s (in %v)", next.Format("2006-01-02 15:04:05"), duration)
-				time.Sleep(duration)
-			}
+			// 次の実行時刻まで待機
+			duration := time.Until(next)
+			log.Printf("Next cleanup scheduled at: %s (in %v)", next.Format("2006-01-02 15:04:05"), duration)
+			time.Sleep(duration)
 
 			// 古い完了済み・キャンセル済み予約を削除（30日以上前）
 			deletedCount, err := store.CleanupOldReservations(30)
@@ -235,7 +249,7 @@ func updateBotStatus(s *discordgo.Session, store *storage.Storage) {
 
 	var status string
 	if pendingCount == 0 {
-		status = "面接予約管理 | /help"
+		status = "部室予約管理 | /help"
 	} else {
 		status = fmt.Sprintf("%d件の予約管理中 | /help", pendingCount)
 	}
@@ -322,10 +336,11 @@ func registerCommands(s *discordgo.Session) error {
 			Description: "予約を取り消します",
 			Options: []*discordgo.ApplicationCommandOption{
 				{
-					Type:        discordgo.ApplicationCommandOptionString,
-					Name:        "reservation_id",
-					Description: "予約ID",
-					Required:    true,
+					Type:         discordgo.ApplicationCommandOptionString,
+					Name:         "reservation_id",
+					Description:  "予約ID",
+					Required:     true,
+					Autocomplete: true,
 				},
 				{
 					Type:        discordgo.ApplicationCommandOptionString,
@@ -340,15 +355,56 @@ func registerCommands(s *discordgo.Session) error {
 			Description: "予約を完了にします",
 			Options: []*discordgo.ApplicationCommandOption{
 				{
-					Type:        discordgo.ApplicationCommandOptionString,
-					Name:        "reservation_id",
-					Description: "予約ID",
-					Required:    true,
+					Type:         discordgo.ApplicationCommandOptionString,
+					Name:         "reservation_id",
+					Description:  "予約ID",
+					Required:     true,
+					Autocomplete: true,
 				},
 				{
 					Type:        discordgo.ApplicationCommandOptionString,
 					Name:        "comment",
 					Description: "コメント（任意）",
+					Required:    false,
+				},
+			},
+		},
+		{
+			Name:        "edit",
+			Description: "予約を編集します",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Type:         discordgo.ApplicationCommandOptionString,
+					Name:         "reservation_id",
+					Description:  "予約ID",
+					Required:     true,
+					Autocomplete: true,
+				},
+				{
+					Type:         discordgo.ApplicationCommandOptionString,
+					Name:         "date",
+					Description:  "新しい予約日（YYYY-MM-DD または YYYY/MM/DD）※変更しない場合は省略",
+					Required:     false,
+					Autocomplete: true,
+				},
+				{
+					Type:         discordgo.ApplicationCommandOptionString,
+					Name:         "start_time",
+					Description:  "新しい開始時間（HH:MM形式）※変更しない場合は省略",
+					Required:     false,
+					Autocomplete: true,
+				},
+				{
+					Type:         discordgo.ApplicationCommandOptionString,
+					Name:         "end_time",
+					Description:  "新しい終了時間（HH:MM形式）※変更しない場合は省略",
+					Required:     false,
+					Autocomplete: true,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "comment",
+					Description: "新しいコメント（※変更しない場合は省略）",
 					Required:    false,
 				},
 			},
@@ -387,10 +443,13 @@ func registerCommands(s *discordgo.Session) error {
 			_, err = s.ApplicationCommandCreate(s.State.User.ID, "", cmd)
 		}
 		if err != nil {
-			return fmt.Errorf("cannot create '%s' command: %v", cmd.Name, err)
+			log.Printf("❌ Failed to register command '%s': %v", cmd.Name, err)
+			// エラーが発生しても次のコマンドの登録を続ける
+		} else {
+			log.Printf("✅ Registered command: %s", cmd.Name)
 		}
-		log.Printf("Registered command: %s", cmd.Name)
 	}
 
+	log.Println("Command registration completed")
 	return nil
 }
