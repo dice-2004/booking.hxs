@@ -32,7 +32,7 @@ NC='\033[0m' # No Color
 
 # プロジェクトのルートディレクトリ
 PROJECT_DIR="/home/hxs/booking.hxs"
-SERVICE_NAME="hxs-reservation-bot.service"
+SERVICE_NAME="booking-hxs.service"
 SERVICE_FILE="${PROJECT_DIR}/config/${SERVICE_NAME}"
 SYSTEMD_DIR="/etc/systemd/system"
 
