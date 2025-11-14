@@ -19,12 +19,12 @@ install: deps ## 依存関係をインストール（ローカル環境用）
 # ビルド
 build:
 	@echo "📦 ビルド中..."
-	go build -o bin/booking.hxs main.go
+	go build -o bin/booking.hxs cmd/bot/main.go
 	@echo "✓ ビルド完了: bin/booking.hxs"
 
 run: ## アプリケーションを実行
 	@echo "アプリケーションを起動中..."
-	go run main.go
+	go run cmd/bot/main.go
 
 dev: ## 開発モードで実行（ホットリロード用）
 	@echo "開発モードで起動中..."
@@ -32,7 +32,7 @@ dev: ## 開発モードで実行（ホットリロード用）
 		air -c config/.air.toml; \
 	else \
 		echo "air がインストールされていません。通常モードで起動します..."; \
-		go run main.go; \
+		go run cmd/bot/main.go; \
 	fi
 
 clean: ## ビルド成果物とキャッシュを削除

@@ -72,14 +72,14 @@ echo -e "${YELLOW}[3/7] バイナリのビルド...${NC}"
 if [ -f "Makefile" ]; then
     make build
 else
-    go build -o bin/hxs_reservation_system main.go
+    go build -o bin/booking.hxs cmd/bot/main.go
 fi
 
-if [ ! -f "bin/hxs_reservation_system" ]; then
+if [ ! -f "bin/booking.hxs" ]; then
     echo -e "${RED}エラー: バイナリのビルドに失敗しました${NC}"
     exit 1
 fi
-chmod +x bin/hxs_reservation_system
+chmod +x bin/booking.hxs
 echo -e "${GREEN}✓ ビルド完了${NC}"
 echo ""
 

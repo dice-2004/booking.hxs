@@ -79,7 +79,7 @@ fi
 
 # 8. ビルドテスト
 echo -e "${YELLOW}8. ビルドテストを実行中...${NC}"
-go build -o bin/booking.hxs main.go
+go build -o bin/booking.hxs cmd/bot/main.go
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ ビルドテスト成功${NC}\n"
     rm -f bin/booking.hxs
