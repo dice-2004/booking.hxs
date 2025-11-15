@@ -174,12 +174,7 @@ func handleList(s *discordgo.Session, i *discordgo.InteractionCreate, store *sto
 
 // handleMyReservations は自分の予約一覧を表示する
 func handleMyReservations(s *discordgo.Session, i *discordgo.InteractionCreate, store *storage.Storage, logger *logging.Logger, isDM bool) {
-	var userID string
-	if isDM {
-		userID = i.User.ID
-	} else {
-		userID = i.Member.User.ID
-	}
+	userID, _ := getUserInfo(i, isDM)
 
 	allReservations := store.GetUserReservations(userID)
 	// 完了・キャンセル済みを除外

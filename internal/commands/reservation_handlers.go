@@ -20,14 +20,7 @@ func handleReserve(s *discordgo.Session, i *discordgo.InteractionCreate, store *
 	}
 
 	// ユーザー情報を取得
-	var userID, username string
-	if isDM {
-		userID = i.User.ID
-		username = i.User.Username
-	} else {
-		userID = i.Member.User.ID
-		username = getDisplayName(i.Member)
-	}
+	userID, username := getUserInfo(i, isDM)
 
 	// 必須パラメータを取得
 	date := optionMap["date"].StringValue()
@@ -506,14 +499,7 @@ func handleEdit(s *discordgo.Session, i *discordgo.InteractionCreate, store *sto
 	}
 
 	// ユーザー情報を取得
-	var userID, username string
-	if isDM {
-		userID = i.User.ID
-		username = i.User.Username
-	} else {
-		userID = i.Member.User.ID
-		username = getDisplayName(i.Member)
-	}
+	userID, username := getUserInfo(i, isDM)
 
 	// 予約IDを取得
 	reservationID := optionMap["reservation_id"].StringValue()

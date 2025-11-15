@@ -114,7 +114,31 @@ func getDateSuggestions(input string) []*discordgo.ApplicationCommandOptionChoic
 		return suggestions
 	}
 
-	// 年の候補を生成（"25"、"26"などの入力に対して"2025"、"2026"を提案）
+	// 月の候補を生成（1-12の入力を月として優先的に扱う）
+	if len(input) <= 2 {
+		if monthNum, err := strconv.Atoi(input); err == nil && monthNum >= 1 && monthNum <= 12 {
+			year := nowJST.Year()
+			suggestions := []*discordgo.ApplicationCommandOptionChoice{}
+			for yearOffset := 0; yearOffset <= 1 && len(suggestions) < 25; yearOffset++ {
+				targetYear := year + yearOffset
+				daysInMonth := time.Date(targetYear, time.Month(monthNum+1), 0, 0, 0, 0, 0, jst).Day()
+
+				for day := 1; day <= daysInMonth && len(suggestions) < 25; day++ {
+					dateStr := fmt.Sprintf("%d/%02d/%02d", targetYear, monthNum, day)
+					suggestions = append(suggestions, &discordgo.ApplicationCommandOptionChoice{
+						Name:  dateStr,
+						Value: dateStr,
+					})
+				}
+			}
+
+			if len(suggestions) > 0 {
+				return suggestions
+			}
+		}
+	}
+
+	// 年の候補を生成（13以上の2桁入力、または月候補がない場合）
 	if len(input) == 2 {
 		if yearNum, err := strconv.Atoi(input); err == nil {
 			currentYear := nowJST.Year()
@@ -129,30 +153,6 @@ func getDateSuggestions(input string) []*discordgo.ApplicationCommandOptionChoic
 			for month := 1; month <= 12 && len(suggestions) < 25; month++ {
 				for day := 1; day <= 7 && len(suggestions) < 25; day++ {
 					dateStr := fmt.Sprintf("%d/%02d/%02d", fullYear, month, day)
-					suggestions = append(suggestions, &discordgo.ApplicationCommandOptionChoice{
-						Name:  dateStr,
-						Value: dateStr,
-					})
-				}
-			}
-
-			if len(suggestions) > 0 {
-				return suggestions
-			}
-		}
-	}
-
-	// 月の候補を生成
-	if len(input) <= 2 {
-		if monthNum, err := strconv.Atoi(input); err == nil && monthNum >= 1 && monthNum <= 12 {
-			year := nowJST.Year()
-			suggestions := []*discordgo.ApplicationCommandOptionChoice{}
-			for yearOffset := 0; yearOffset <= 1 && len(suggestions) < 25; yearOffset++ {
-				targetYear := year + yearOffset
-				daysInMonth := time.Date(targetYear, time.Month(monthNum+1), 0, 0, 0, 0, 0, jst).Day()
-
-				for day := 1; day <= daysInMonth && len(suggestions) < 25; day++ {
-					dateStr := fmt.Sprintf("%d/%02d/%02d", targetYear, monthNum, day)
 					suggestions = append(suggestions, &discordgo.ApplicationCommandOptionChoice{
 						Name:  dateStr,
 						Value: dateStr,
@@ -241,32 +241,19 @@ func getDateSuggestions(input string) []*discordgo.ApplicationCommandOptionChoic
 
 // getTimeSuggestions は時刻の候補を生成する
 func getTimeSuggestions(input string, startTime string) []*discordgo.ApplicationCommandOptionChoice {
-	suggestions := []*discordgo.ApplicationCommandOptionChoice{
-		{Name: "09:00", Value: "09:00"},
-		{Name: "09:30", Value: "09:30"},
-		{Name: "10:00", Value: "10:00"},
-		{Name: "10:30", Value: "10:30"},
-		{Name: "11:00", Value: "11:00"},
-		{Name: "11:30", Value: "11:30"},
-		{Name: "12:00", Value: "12:00"},
-		{Name: "12:30", Value: "12:30"},
-		{Name: "13:00", Value: "13:00"},
-		{Name: "13:30", Value: "13:30"},
-		{Name: "14:00", Value: "14:00"},
-		{Name: "14:30", Value: "14:30"},
-		{Name: "15:00", Value: "15:00"},
-		{Name: "15:30", Value: "15:30"},
-		{Name: "16:00", Value: "16:00"},
-		{Name: "16:30", Value: "16:30"},
-		{Name: "17:00", Value: "17:00"},
-		{Name: "17:30", Value: "17:30"},
-		{Name: "18:00", Value: "18:00"},
-		{Name: "18:30", Value: "18:30"},
-		{Name: "19:00", Value: "19:00"},
-		{Name: "19:30", Value: "19:30"},
-		{Name: "20:00", Value: "20:00"},
-		{Name: "20:30", Value: "20:30"},
-		{Name: "21:00", Value: "21:00"},
+	// 9:00から21:00まで30分刻みで候補を生成
+	suggestions := []*discordgo.ApplicationCommandOptionChoice{}
+	for hour := 9; hour <= 21; hour++ {
+		for _, minute := range []int{0, 30} {
+			if hour == 21 && minute == 30 {
+				break // 21:00で終了
+			}
+			timeStr := fmt.Sprintf("%02d:%02d", hour, minute)
+			suggestions = append(suggestions, &discordgo.ApplicationCommandOptionChoice{
+				Name:  timeStr,
+				Value: timeStr,
+			})
+		}
 	}
 
 	// end_timeの場合、start_timeより後の時刻のみフィルタリング

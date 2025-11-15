@@ -14,14 +14,7 @@ func HandleInteraction(s *discordgo.Session, i *discordgo.InteractionCreate, sto
 	isDM := i.GuildID == ""
 	channelID := i.ChannelID
 
-	var userID, username string
-	if isDM {
-		userID = i.User.ID
-		username = i.User.Username
-	} else {
-		userID = i.Member.User.ID
-		username = getDisplayName(i.Member)
-	}
+	userID, username := getUserInfo(i, isDM)
 
 	if !isDM && allowedChannelID != "" && channelID != allowedChannelID {
 		respondEphemeral(s, i, "This command can only be used in the allowed channel or DM.")

@@ -88,6 +88,14 @@ func getDisplayName(member *discordgo.Member) string {
 	return member.User.Username
 }
 
+// getUserInfo はインタラクションからユーザーIDとユーザー名を取得する
+func getUserInfo(i *discordgo.InteractionCreate, isDM bool) (userID, username string) {
+	if isDM {
+		return i.User.ID, i.User.Username
+	}
+	return i.Member.User.ID, getDisplayName(i.Member)
+}
+
 // normalizeTime は時刻をHH:MM形式に正規化する（H:MM → HH:MM）
 func normalizeTime(timeStr string) string {
 	parts := strings.Split(timeStr, ":")
@@ -95,13 +103,13 @@ func normalizeTime(timeStr string) string {
 		return timeStr
 	}
 
+	// 時と分を2桁にパディング
 	hour := parts[0]
 	minute := parts[1]
 
 	if len(hour) == 1 {
 		hour = "0" + hour
 	}
-
 	if len(minute) == 1 {
 		minute = "0" + minute
 	}
@@ -111,41 +119,30 @@ func normalizeTime(timeStr string) string {
 
 // normalizeDate は日付をYYYY/MM/DD形式に正規化する
 func normalizeDate(dateStr string) string {
-	parts := strings.Split(dateStr, "/")
-	if len(parts) == 3 {
-		year := parts[0]
-		month := parts[1]
-		day := parts[2]
-
-		if len(month) == 1 {
-			month = "0" + month
-		}
-
-		if len(day) == 1 {
-			day = "0" + day
-		}
-
-		return year + "/" + month + "/" + day
+	// /または-で分割
+	separator := "/"
+	if strings.Contains(dateStr, "-") {
+		separator = "-"
 	}
 
-	parts = strings.Split(dateStr, "-")
-	if len(parts) == 3 {
-		year := parts[0]
-		month := parts[1]
-		day := parts[2]
-
-		if len(month) == 1 {
-			month = "0" + month
-		}
-
-		if len(day) == 1 {
-			day = "0" + day
-		}
-
-		return year + "/" + month + "/" + day
+	parts := strings.Split(dateStr, separator)
+	if len(parts) != 3 {
+		return dateStr
 	}
 
-	return dateStr
+	year := parts[0]
+	month := parts[1]
+	day := parts[2]
+
+	// 月と日を2桁にパディング
+	if len(month) == 1 {
+		month = "0" + month
+	}
+	if len(day) == 1 {
+		day = "0" + day
+	}
+
+	return year + "/" + month + "/" + day
 }
 
 // formatDate は日付をYYYY/MM/DD形式にフォーマットする
