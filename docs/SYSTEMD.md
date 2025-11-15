@@ -50,7 +50,7 @@ ls -la /home/hxs/booking.hxs
 cd /home/hxs/booking.hxs
 
 # セットアップスクリプトを実行
-sudo ./setup-systemd.sh
+./setup-systemd.sh
 ```
 
 **このスクリプトが実行すること**:
@@ -76,7 +76,7 @@ cd /home/hxs/booking.hxs
 make build
 
 # または
-go build -o bin/booking.hxs main.go
+go build -o bin/booking.hxs cmd/bot/main.go
 
 # ビルド成功を確認
 ls -lh bin/booking.hxs
@@ -145,7 +145,7 @@ systemdサービスは通常の `.env` ファイルを自動では読み込み�
 
 ### 方法A: サービスファイルに直接記述（推奨）
 
-**メリット**: シンプルで確実
+**メリット**: シンプルで確実<br>
 **デメリット**: サービスファイルを編集する必要がある
 
 ```bash
@@ -173,7 +173,7 @@ sudo systemctl restart booking-hxs
 
 ### 方法B: 環境ファイルを使用
 
-**メリット**: 設定を外部ファイルで管理できる
+**メリット**: 設定を外部ファイルで管理できる<br>
 **デメリット**: ファイルのパーミッション管理が必要
 
 #### 1. 本番環境用の.envファイルを準備
@@ -412,8 +412,8 @@ Permission denied
 chmod +x /home/hxs/booking.hxs/bin/booking.hxs
 
 # 予約データファイルの権限を確認
-ls -la /home/hxs/booking.hxs/reservations.json
-chmod 644 /home/hxs/booking.hxs/reservations.json
+ls -la /home/hxs/booking.hxs/data/reservations.json
+chmod 644 /home/hxs/booking.hxs/data/reservations.json
 
 # ユーザーの所有権を確認
 sudo chown -R hxs:hxs /home/hxs/booking.hxs
@@ -544,7 +544,7 @@ BACKUP_DIR="/home/hxs/backups"
 DATE=$(date +%Y%m%d)
 
 # 予約データをバックアップ
-cp /home/hxs/booking.hxs/reservations.json $BACKUP_DIR/reservations_$DATE.json
+cp /home/hxs/booking.hxs/data/reservations.json $BACKUP_DIR/reservations_$DATE.json
 
 # 7日以上前のバックアップを削除
 find $BACKUP_DIR -name "reservations_*.json" -mtime +7 -delete

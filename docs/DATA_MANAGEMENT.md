@@ -16,12 +16,11 @@
 
 ### 予約データファイル
 
-予約データは **JSON形式** で保存されます。
+予約データは **JSON形式** で `data/` ディレクトリに保存されます。
 
 | ファイル | 説明 |
 |---------|------|
-| `reservations.json` | 本番環境の予約データ |
-| `reservations_dev.json` | 開発環境の予約データ（設定により） |
+| `data/reservations.json` | 予約データ（本番・開発共通） |
 
 ### データ構造
 
@@ -297,11 +296,11 @@ wc -l logs/errors_2025-11.log
 
 ```bash
 # 手動バックアップ
-cp reservations.json reservations_backup_$(date +%Y%m%d).json
+cp data/reservations.json data/reservations_backup_$(date +%Y%m%d).json
 
 # 定期的なバックアップ（cronで設定）
 # 毎日午前2時にバックアップ
-0 2 * * * cp /path/to/reservations.json /path/to/backups/reservations_$(date +\%Y\%m\%d).json
+0 2 * * * cp /path/to/booking.hxs/data/reservations.json /path/to/backups/reservations_$(date +\%Y\%m\%d).json
 ```
 
 ### ログのバックアップ
@@ -318,7 +317,7 @@ cp logs/commands_2025-11.log backups/
 
 ```bash
 # 予約データを復元
-cp reservations_backup_20251109.json reservations.json
+cp data/reservations_backup_20251109.json data/reservations.json
 
 # Botを再起動して変更を反映
 # または systemd経由で再起動
@@ -329,19 +328,74 @@ systemctl restart booking-hxs
 
 ## カスタマイズ
 
-### 保持期間の変更
+### 各種設定値の変更
 
-`main.go` の以下の行を編集：
+`cmd/bot/main.go` の冒頭にある定数を編集して、各種設定をカスタマイズできます：
+
+```go
+const (
+	saveInterval       = 5 * time.Minute  // 定期保存間隔
+	logCleanupInterval = 24 * time.Hour   // ログクリーンアップ間隔
+	autoCompleteHour   = 3                // 自動完了実行時刻（時）
+	autoCompleteMinute = 0                // 自動完了実行時刻（分）
+	cleanupHour        = 3                // クリーンアップ実行時刻（時）
+	cleanupMinute      = 10               // クリーンアップ実行時刻（分）
+	retentionDays      = 30               // データ保持期間（日）
+)
+```
+
+#### 保持期間の変更
 
 ```go
 // デフォルト: 30日
-deletedCount, err := store.CleanupOldReservations(30)
+retentionDays = 30
 
 // 例: 60日に変更
-deletedCount, err := store.CleanupOldReservations(60)
+retentionDays = 60
 
 // 例: 7日に変更（短期間）
-deletedCount, err := store.CleanupOldReservations(7)
+retentionDays = 7
+```
+
+#### 期限切れ予約の自動完了時刻の変更
+
+```go
+// デフォルト: 午前3時00分
+autoCompleteHour   = 3
+autoCompleteMinute = 0
+
+// 例: 午前2時00分に変更
+autoCompleteHour   = 2
+autoCompleteMinute = 0
+
+// 例: 午後11時30分に変更
+autoCompleteHour   = 23
+autoCompleteMinute = 30
+```
+
+#### 古いデータの削除時刻の変更
+
+```go
+// デフォルト: 午前3時10分
+cleanupHour   = 3
+cleanupMinute = 10
+
+// 例: 午前4時30分に変更
+cleanupHour   = 4
+cleanupMinute = 30
+```
+
+#### 定期保存間隔の変更
+
+```go
+// デフォルト: 5分ごと
+saveInterval = 5 * time.Minute
+
+// 例: 10分ごとに変更
+saveInterval = 10 * time.Minute
+
+// 例: 1分ごとに変更（頻繁に保存）
+saveInterval = 1 * time.Minute
 ```
 
 変更後、再ビルドが必要です：
@@ -351,62 +405,49 @@ make build
 
 ---
 
-### クリーンアップ実行時刻の変更
-
-#### 期限切れ予約の自動完了
-
-`main.go` の以下の部分を編集：
-
-```go
-// デフォルト: 午前3時
-next := time.Date(now.Year(), now.Month(), now.Day(), 3, 0, 0, 0, now.Location())
-
-// 例: 午前2時に変更
-next := time.Date(now.Year(), now.Month(), now.Day(), 2, 0, 0, 0, now.Location())
-
-// 例: 午後11時に変更
-next := time.Date(now.Year(), now.Month(), now.Day(), 23, 0, 0, 0, now.Location())
-```
-
-#### 古いデータの削除
-
-```go
-// デフォルト: 午前3時10分
-next := time.Date(now.Year(), now.Month(), now.Day(), 3, 10, 0, 0, now.Location())
-
-// 例: 午前4時30分に変更
-next := time.Date(now.Year(), now.Month(), now.Day(), 4, 30, 0, 0, now.Location())
-```
-
----
-
 ### データファイルの場所を変更
 
-環境変数で変更できます：
-
-```env
-# .env ファイル
-DATA_FILE=custom_reservations.json
-```
-
-または `main.go` で直接指定：
+データファイルのパスは `internal/storage/storage.go` で定義されています：
 
 ```go
-store = storage.NewStorage("custom_reservations.json")
+const dataFilePath = "data/reservations.json"
+```
+
+変更する場合は、このファイルを編集してからビルドし直してください：
+
+```bash
+# internal/storage/storage.go を編集
+vi internal/storage/storage.go
+
+# ビルド
+make build
+
+# 実行
+make run
 ```
 
 ---
 
 ### ログディレクトリの変更
 
-`main.go` の以下の行を編集：
+`cmd/bot/main.go` の `initializeServices()` 関数内を編集：
 
 ```go
-// デフォルト: ./logs
-logger = logging.NewLogger("./logs")
+func initializeServices() {
+	store = storage.NewStorage()
+	if err := store.Load(); err != nil {
+		log.Fatalf("Failed to load reservations: %v", err)
+	}
+	log.Println("Reservations loaded successfully")
 
-// 例: /var/log/hxs に変更
-logger = logging.NewLogger("/var/log/hxs")
+	// デフォルト: ./logs
+	logger = logging.NewLogger("./logs")
+
+	// 例: /var/log/hxs に変更
+	// logger = logging.NewLogger("/var/log/hxs")
+
+	log.Println("Logger initialized successfully")
+}
 ```
 
 ---
@@ -470,8 +511,8 @@ logger = logging.NewLogger("/var/log/hxs")
 **原因と解決**:
 1. ファイル権限を確認
    ```bash
-   ls -la reservations.json
-   chmod 644 reservations.json
+   ls -la data/reservations.json
+   chmod 644 data/reservations.json
    ```
 
 2. ディスク容量を確認
@@ -551,7 +592,7 @@ grep "Cleaned up" logs/commands_2025-11.log
 du -sh logs/
 
 # 予約データのサイズ
-ls -lh reservations.json
+ls -lh data/reservations.json
 
 # 全体のディスク使用量
 df -h

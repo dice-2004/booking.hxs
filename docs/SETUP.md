@@ -143,7 +143,7 @@ cp config/.env.example .env
 mkdir -p bin logs
 
 # ビルドテスト
-go build -o bin/booking.hxs main.go
+go build -o bin/booking.hxs cmd/bot/main.go
 ```
 
 ---
@@ -206,14 +206,14 @@ make start
 ### 方法2: Go runで直接実行
 
 ```bash
-go run main.go
+go run cmd/bot/main.go
 ```
 
 ### 方法3: ビルドしてから実行
 
 ```bash
 # ビルド
-go build -o bin/booking.hxs main.go
+go build -o bin/booking.hxs cmd/bot/main.go
 
 # 実行
 ./bin/booking.hxs
@@ -224,18 +224,35 @@ go build -o bin/booking.hxs main.go
 以下のようなログが表示されれば成功です：
 
 ```
-Reservations loaded successfully
-Logger initialized successfully
-Bot is now running. Press CTRL+C to exit.
-Registered command: reserve
-Registered command: cancel
-Registered command: complete
-Registered command: list
-Registered command: my-reservations
-Registered command: help
-Registered command: feedback
-Next auto-complete scheduled at: 2025-11-10 03:00:00 (in 8h45m32s)
-Next cleanup scheduled at: 2025-11-10 03:10:00 (in 8h55m32s)
+2025/11/14 20:03:57 Reservations loaded successfully
+2025/11/14 20:03:57 Logger initialized successfully
+2025/11/14 20:03:58 Bot is now running. Press CTRL+C to exit.
+2025/11/14 20:03:58 Removing existing commands...
+2025/11/14 20:03:59 Deleted existing guild command: reserve
+2025/11/14 20:03:59 Deleted existing guild command: cancel
+2025/11/14 20:04:00 Deleted existing guild command: complete
+2025/11/14 20:04:00 Deleted existing guild command: edit
+2025/11/14 20:04:00 Deleted existing guild command: list
+2025/11/14 20:04:19 Deleted existing guild command: my-reservations
+2025/11/14 20:04:20 Deleted existing guild command: help
+2025/11/14 20:04:20 Deleted existing guild command: feedback
+2025/11/14 20:04:20 Registering new commands...
+2025/11/14 20:04:20 ✅ Registered command: reserve
+2025/11/14 20:04:21 ✅ Registered command: cancel
+2025/11/14 20:04:21 ✅ Registered command: complete
+2025/11/14 20:04:21 ✅ Registered command: edit
+2025/11/14 20:04:21 ✅ Registered command: list
+2025/11/14 20:04:41 ✅ Registered command: my-reservations
+2025/11/14 20:04:41 ✅ Registered command: help
+2025/11/14 20:04:41 ✅ Registered command: feedback
+2025/11/14 20:04:41 Command registration completed
+2025/11/14 20:04:41 Startup: Running initial auto-complete check...
+2025/11/14 20:04:41 Startup: Running initial cleanup check...
+2025/11/14 20:04:41 ✅ Auto-completed 1 expired reservation(s) and saved
+2025/11/14 20:04:41 ✓ Cleanup check completed: no old reservations to remove
+2025/11/14 20:04:41 Next auto-complete scheduled at: 2025-11-15 03:00:00 (in 6h55m18.2348028s)
+2025/11/14 20:04:41 Next cleanup scheduled at: 2025-11-15 03:10:00 (in 7h5m18.234786329s)
+
 ```
 
 ### Botの停止
@@ -296,8 +313,9 @@ DISCORD_TOKEN=prod_token_here
 GUILD_ID=
 FEEDBACK_CHANNEL_ID=prod_feedback_channel_id
 ENV=production
-DATA_FILE=reservations.json
 ```
+
+**注**: `DATA_FILE` 環境変数は使用されません。データは常に `data/reservations.json` に保存されます。
 
 ---
 
@@ -324,6 +342,46 @@ air
 ```
 
 ファイルを編集すると、自動的に再ビルド＆再起動されます。
+
+---
+
+## 次のステップ
+
+起動が成功したら、以下のドキュメントもご覧ください：
+
+- **[コマンドリファレンス](COMMANDS.md)** - すべてのコマンドの使い方
+- **[データの取り扱い](DATA_MANAGEMENT.md)** - データ管理とクリーンアップ
+- **[systemdセットアップ](SYSTEMD.md)** - 本番環境での自動起動
+- **[開発者ガイド](DEVELOPMENT.md)** - カスタマイズと拡張
+
+---
+
+## よく使うコマンドまとめ
+
+```bash
+# セットアップ
+./setup.sh                    # 初回セットアップ
+make setup                    # または Makefile経由
+
+# 起動
+make run                      # 開発モードで実行
+make dev                      # ホットリロード
+make start                    # ビルド＋実行
+
+# 環境切り替え
+./switch_env.sh development   # 開発環境
+./switch_env.sh production    # 本番環境
+./switch_env.sh status        # 現在の環境確認
+
+# コード品質
+make fmt                      # フォーマット
+make vet                      # 静的解析
+make check                    # fmt + vet
+
+# その他
+make help                     # コマンド一覧
+make clean                    # クリーンアップ
+```
 
 ---
 
@@ -392,10 +450,10 @@ Botを再起動すると予約が消える
 **1. ファイル権限の問題**
 ```bash
 # 確認
-ls -la reservations.json
+ls -la data/reservations.json
 
 # 解決方法（書き込み権限を付与）
-chmod 644 reservations.json
+chmod 644 data/reservations.json
 ```
 
 **2. ディスク容量不足**
@@ -468,45 +526,4 @@ tail -f logs/commands_2025-11.log
 ```
 
 ---
-
-## 次のステップ
-
-起動が成功したら、以下のドキュメントもご覧ください：
-
-- **[コマンドリファレンス](COMMANDS.md)** - すべてのコマンドの使い方
-- **[データの取り扱い](DATA_MANAGEMENT.md)** - データ管理とクリーンアップ
-- **[systemdセットアップ](SYSTEMD.md)** - 本番環境での自動起動
-- **[開発者ガイド](DEVELOPMENT.md)** - カスタマイズと拡張
-
----
-
-## よく使うコマンドまとめ
-
-```bash
-# セットアップ
-./setup.sh                    # 初回セットアップ
-make setup                    # または Makefile経由
-
-# 起動
-make run                      # 開発モードで実行
-make dev                      # ホットリロード
-make start                    # ビルド＋実行
-
-# 環境切り替え
-./switch_env.sh development   # 開発環境
-./switch_env.sh production    # 本番環境
-./switch_env.sh status        # 現在の環境確認
-
-# コード品質
-make fmt                      # フォーマット
-make vet                      # 静的解析
-make check                    # fmt + vet
-
-# その他
-make help                     # コマンド一覧
-make clean                    # クリーンアップ
-```
-
----
-
 **関連ドキュメント**: [README](../README.md) | [コマンド](COMMANDS.md) | [データ管理](DATA_MANAGEMENT.md) | [systemd](SYSTEMD.md) | [開発](DEVELOPMENT.md)

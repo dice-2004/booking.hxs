@@ -8,6 +8,8 @@
 
 ## 🆕 UI/UX仕様・開発ルール（2025年11月更新）
 
+### UI/UX仕様
+
 - すべてのDiscord埋め込みメッセージは「部室予約システム | コマンド名」形式のフッター付きで統一されています。
 - `/list`・`/my-reservations`コマンドは「部室予約システム | list | 予約 X/Y」など進捗付きフッターを表示します。
 - 予約一覧が10件以上の場合、Ephemeralメッセージ（実行者のみに表示）で複数メッセージに分割して表示されます。
@@ -15,8 +17,43 @@
 - コマンド登録時に一部失敗しても他のコマンドは登録され、エラーはログに記録されます。
 - 予約情報の表示レイアウトは`/reserve`コマンドのフォーマット（Fields, Inline: true/false）に統一されています。
 
+### コーディング規約
 
-### Go Modulesによる依存関係管理
+#### main.goの構造
+
+`cmd/bot/main.go`は以下の構造で統一されています：
+
+1. **定数の定義** - ファイル冒頭にすべての設定定数を集約
+   ```go
+   const (
+       saveInterval       = 5 * time.Minute
+       autoCompleteHour   = 3
+       retentionDays      = 30
+   )
+   ```
+
+2. **グローバル変数** - 必要最小限に抑える
+   ```go
+   var (
+       store  *storage.Storage
+       logger *logging.Logger
+   )
+   ```
+
+3. **関数の分割** - 各関数は単一責任を持つ
+   - `initializeServices()`: サービス初期化
+   - `setupHandlers()`: イベントハンドラー設定
+   - `startBackgroundTasks()`: バックグラウンドタスク起動
+
+#### コマンドハンドラーの構造
+
+- 各コマンドは独立したファイル（`internal/commands/cmd_*.go`）で管理
+- `handlers.go`はルーティングのみを担当
+- 共通処理は`response_helpers.go`に集約
+
+---
+
+## Go Modulesによる依存関係管理
 
 このプロジェクトは **Go Modules** を使用しています。Pythonの仮想環境のように、プロジェクト固有の依存関係を管理します。
 
@@ -74,7 +111,6 @@ DISCORD_TOKEN=dev_token_here
 GUILD_ID=dev_server_id
 FEEDBACK_CHANNEL_ID=dev_feedback_channel_id
 ENV=development
-DATA_FILE=reservations_dev.json
 ```
 
 **本番環境（.env.production）**
@@ -83,8 +119,9 @@ DISCORD_TOKEN=prod_token_here
 GUILD_ID=
 FEEDBACK_CHANNEL_ID=prod_feedback_channel_id
 ENV=production
-DATA_FILE=reservations.json
 ```
+
+**注**: `DATA_FILE` 環境変数は使用されません。データは常に `data/reservations.json` に保存されます。
 
 ---
 
@@ -166,7 +203,7 @@ make all           # check + build
 
 ```bash
 # 1. コードを編集
-vi commands/handlers.go
+vi internal/commands/handlers.go
 
 # 2. フォーマット＋静的解析
 make check
@@ -256,23 +293,45 @@ go test ./...
 
 ```
 booking.hxs/
-├── main.go                    # エントリーポイント
 ├── go.mod / go.sum            # 依存関係管理
 │
-├── commands/                  # コマンドハンドラー
-│   └── handlers.go            # インタラクション処理
+├── cmd/                       # アプリケーションエントリーポイント
+│   └── bot/                   # Discord Botアプリケーション
+│       └── main.go            # メインエントリーポイント
 │
-├── models/                    # データモデル
-│   └── reservation.go         # 予約データ構造
-│
-├── storage/                   # データ永続化
-│   └── storage.go             # JSON読み書き、クリーンアップ
-│
-├── logging/                   # ログ管理
-│   └── logger.go              # コマンドログ、統計
+├── internal/                  # プライベートアプリケーションコード
+│   ├── commands/              # コマンドハンドラー
+│   │   ├── handlers.go        # インタラクション処理のルーティング
+│   │   ├── autocomplete.go    # オートコンプリート
+│   │   ├── cmd_reserve.go     # /reserve コマンド
+│   │   ├── cmd_cancel.go      # /cancel コマンド
+│   │   ├── cmd_complete.go    # /complete コマンド
+│   │   ├── cmd_edit.go        # /edit コマンド
+│   │   ├── cmd_list.go        # /list コマンド
+│   │   ├── cmd_my_reservations.go # /my-reservations コマンド
+│   │   ├── cmd_help.go        # /help コマンド
+│   │   ├── cmd_feedback.go    # /feedback コマンド
+│   │   └── response_helpers.go # レスポンス共通関数
+│   │
+│   ├── models/                # データモデル
+│   │   └── reservation.go     # 予約データ構造
+│   │
+│   ├── storage/               # データ永続化
+│   │   ├── storage.go         # JSON読み書き、クリーンアップ
+│   │   └── storage_test.go    # ストレージテスト
+│   │
+│   └── logging/               # ログ管理
+│       └── logger.go          # コマンドログ、統計
 │
 ├── bin/                       # ビルド成果物
+│   └── booking.hxs            # ビルド済みバイナリ
+│
+├── data/                      # データファイル
+│   └── reservations.json      # 予約データ（自動生成）
+│
 ├── logs/                      # ログファイル（自動生成）
+│   ├── commands_YYYY-MM.log   # 月別コマンドログ
+│   └── command_stats.json     # コマンド統計
 │
 ├── config/                    # 設定ファイル
 │   ├── .env.example           # 環境変数テンプレート
@@ -287,13 +346,41 @@ booking.hxs/
 │   ├── DATA_MANAGEMENT.md     # データ管理
 │   ├── SYSTEMD.md             # systemdセットアップ
 │   ├── DEVELOPMENT.md         # 開発者ガイド（本ファイル）
-│   └── CHANGELOG.md           # 変更履歴
+│   ├── CHANGELOG.md           # 変更履歴
+│   ├── RELEASE_NOTES.md       # リリースノート一覧
+│   └── releases/              # 各バージョンのリリースノート
 │
 ├── Makefile                   # ビルドタスク
-├── setup.sh                   # セットアップスクリプト
-├── manage_deps.sh             # 依存関係管理
-└── switch_env.sh              # 環境切り替え
+├── .env                      # 現在の環境設定（Git除外）
+├── .env.example              # 設定テンプレート
+├── .env.development          # 開発環境設定
+├── .env.production           # 本番環境設定
+├── .gitignore                # Git除外ファイル
+├── go.mod                    # 依存関係定義
+├── go.sum                    # 依存関係チェックサム
+├── Makefile                  # タスク自動化
+├── setup.sh                  # セットアップスクリプト
+├── manage_deps.sh            # 依存関係管理スクリプト
+└── switch_env.sh             # 環境切り替えスクリプト
+
 ```
+
+### ディレクトリ構造の設計思想
+
+このプロジェクトは、Goコミュニティで推奨される標準的なプロジェクトレイアウトに従っています:
+
+- **`cmd/bot/`**: Botアプリケーションのエントリーポイント
+  - コマンド登録、インタラクションハンドリング、定期タスクなど
+  - 将来的にCLIツールや管理ツールを`cmd/`に追加可能
+
+- **`internal/`**: プライベートアプリケーションコード
+  - Goの特別なディレクトリ（外部パッケージからインポート不可）
+  - `commands/`: Discord コマンドのハンドラー群（コマンドごとに分割）
+  - `models/`: データモデル定義
+  - `storage/`: データ永続化ロジック
+  - `logging/`: ロギング機能
+
+この構造により、コードの保守性と拡張性が向上します。各コマンドが独立したファイルで管理されているため、機能追加や修正が容易です。
 
 ---
 
@@ -301,7 +388,7 @@ booking.hxs/
 
 ### 新しいコマンドを追加
 
-#### 1. コマンド定義を追加（main.go）
+#### 1. コマンド定義を追加（cmd/bot/main.go）
 
 ```go
 commands := []*discordgo.ApplicationCommand{
@@ -321,62 +408,64 @@ commands := []*discordgo.ApplicationCommand{
 }
 ```
 
-#### 2. ハンドラーを追加（commands/handlers.go）
+#### 2. ルーティングを追加（internal/commands/handlers.go）
 
 ```go
 func HandleInteraction(...) {
     switch commandName {
     // ... 既存のケース
     case "your-new-command":
-        handleYourNewCommand(s, i, store, logger)
+        handleYourNewCommand(s, i, store, logger, allowedChannelID, isDM)
     }
 }
+```
 
-func handleYourNewCommand(s *discordgo.Session, i *discordgo.InteractionCreate, store *storage.Storage, logger *logging.Logger) {
-    // コマンドの処理
+#### 3. コマンドハンドラーファイルを作成（internal/commands/cmd_your_new_command.go）
+
+```go
+package commands
+
+import (
+    "github.com/bwmarrin/discordgo"
+    "github.com/dice/hxs_reservation_system/internal/logging"
+    "github.com/dice/hxs_reservation_system/internal/storage"
+)
+
+// handleYourNewCommand は新しいコマンドを処理する
+func handleYourNewCommand(s *discordgo.Session, i *discordgo.InteractionCreate, store *storage.Storage, logger *logging.Logger, allowedChannelID string, isDM bool) {
     options := i.ApplicationCommandData().Options
-    param1 := options[0].StringValue()
+    optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
+    for _, opt := range options {
+        optionMap[opt.Name] = opt
+    }
+
+    param1 := optionMap["param1"].StringValue()
+
+    // コマンドの処理ロジック
 
     // レスポンスを返す
     respondEphemeral(s, i, "処理が完了しました")
 
-    // ログに記録
-    logger.LogCommand("your-new-command", i.Member.User.ID, getDisplayName(i.Member), i.ChannelID, true, "", map[string]interface{}{"param1": param1})
+    // Botステータスを更新（必要な場合）
+    if UpdateStatusCallback != nil {
+        UpdateStatusCallback()
+    }
 }
 ```
 
-#### 3. 再ビルド＆再起動
+#### 4. 再ビルド＆再起動
 
 ```bash
 make build
 make run
 ```
 
----
+**ポイント**:
+- 各コマンドは独立したファイル（`cmd_*.go`）で管理
+- `handlers.go`はルーティングのみを担当
+- 共通関数は`response_helpers.go`に配置
 
-### クリーンアップタイミングのカスタマイズ
 
-#### 保持期間の変更
-
-`main.go` の以下の行を変更：
-
-```go
-// デフォルト: 30日
-deletedCount, err := store.CleanupOldReservations(30)
-
-// カスタマイズ例: 60日
-deletedCount, err := store.CleanupOldReservations(60)
-```
-
-#### 実行時刻の変更
-
-```go
-// デフォルト: 午前3時
-next := time.Date(now.Year(), now.Month(), now.Day(), 3, 0, 0, 0, now.Location())
-
-// カスタマイズ例: 午前2時
-next := time.Date(now.Year(), now.Month(), now.Day(), 2, 0, 0, 0, now.Location())
-```
 
 ---
 
@@ -384,7 +473,7 @@ next := time.Date(now.Year(), now.Month(), now.Day(), 2, 0, 0, 0, now.Location()
 
 #### 予約モデルにフィールドを追加
 
-`models/reservation.go` を編集：
+`internal/models/reservation.go` を編集：
 
 ```go
 type Reservation struct {
@@ -409,7 +498,7 @@ type Reservation struct {
 
 ### ログフォーマットのカスタマイズ
 
-`logging/logger.go` でログフォーマットを変更できます。
+`internal/logging/logger.go` でログフォーマットを変更できます。
 
 ---
 
@@ -440,7 +529,7 @@ sudo journalctl -u booking-hxs -f
 
 ### ユニットテストの追加
 
-`storage/storage_test.go` などにテストを追加：
+`internal/storage/storage_test.go` などにテストを追加：
 
 ```go
 func TestCleanupOldReservations(t *testing.T) {
@@ -472,7 +561,7 @@ go test -cover ./...
 - `.env` - 環境変数（機密情報）
 - `bin/` - ビルド成果物
 - `logs/` - ログファイル
-- `reservations.json` - データファイル
+- `data/` - データファイル（`data/reservations.json`等）
 - `*.backup` - バックアップファイル
 
 ### コミット前のチェック
@@ -520,29 +609,6 @@ air
 ```
 
 設定は`.air.toml`で管理されています。
-
-## 📁 プロジェクト構造
-
-```
-booking.hxs/
-├── .env                      # 現在の環境設定（Git除外）
-├── .env.example              # 設定テンプレート
-├── .env.development          # 開発環境設定
-├── .env.production           # 本番環境設定
-├── .gitignore                # Git除外ファイル
-├── go.mod                    # 依存関係定義
-├── go.sum                    # 依存関係チェックサム
-├── Makefile                  # タスク自動化
-├── setup.sh                  # セットアップスクリプト
-├── manage_deps.sh            # 依存関係管理スクリプト
-├── switch_env.sh             # 環境切り替えスクリプト
-├── .air.toml                 # ホットリロード設定
-├── main.go                   # エントリーポイント
-├── bin/                      # ビルド成果物
-├── models/                   # データモデル
-├── storage/                  # データ永続化
-└── commands/                 # コマンドハンドラー
-```
 
 ## 🔒 セキュリティのベストプラクティス
 
@@ -604,7 +670,7 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN go build -o booking.hxs main.go
+RUN go build -o booking.hxs cmd/bot/main.go
 
 FROM alpine:latest
 WORKDIR /app
