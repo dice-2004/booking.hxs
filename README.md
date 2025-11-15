@@ -1,6 +1,6 @@
 # booking.hxs - Discord Bot 部室予約システム
 
-Go言語で作成されたDiscord Bot用の部室予約システムです。スラッシュコマンドを使用して、面接の予約作成、編集、取り消し、完了を管理できます。
+Go言語で作成されたDiscord Bot用の部室予約システムです。スラッシュコマンドを使用して、部室の予約作成、編集、取り消し、完了を管理できます。
 
 ## 🚀 クイックスタート
 
@@ -15,621 +15,111 @@ vi .env  # DISCORD_TOKEN, GUILD_ID, FEEDBACK_CHANNEL_ID を設定
 make run
 ```
 
-詳しくは **[📖 アプリの起動ガイド](docs/SETUP.md)** をご覧ください。
+詳しくは **[📖 セットアップガイド](docs/SETUP.md)** をご覧ください。
 
+---
 
 ## 📚 ドキュメント
 
-### 基本ドキュメント
+| カテゴリ | ドキュメント | 説明 |
+|---------|------------|------|
+| **基本** | **[📖 セットアップガイド](docs/SETUP.md)** | 環境構築から起動まで |
+| | **[📝 コマンドリファレンス](docs/COMMANDS.md)** | 全コマンドの使い方 |
+| **運用** | **[🗄️ データ管理](docs/DATA_MANAGEMENT.md)** | データ保存とクリーンアップ |
+| | **[⚙️ systemdセットアップ](docs/SYSTEMD.md)** | サーバーでの自動起動 |
+| **開発** | **[💻 開発者ガイド](docs/DEVELOPMENT.md)** | 開発環境と拡張方法 |
+| **変更履歴** | **[📋 CHANGELOG](docs/CHANGELOG.md)** | バージョン履歴（概要） |
+| | **[📝 リリースノート](docs/RELEASE_NOTES.md)** | 詳細なリリース情報 |
 
-| ドキュメント | 説明 |
-|------------|------|
-| **[📖 アプリの起動ガイド](docs/SETUP.md)** | セットアップから起動まで、環境構築の完全ガイド |
-| **[📝 コマンドリファレンス](docs/COMMANDS.md)** | すべてのコマンドの詳しい使い方 |
-| **[🗄️ データの取り扱い](docs/DATA_MANAGEMENT.md)** | データ管理、クリーンアップ、ログ機能 |
-
-### 運用・開発ドキュメント
-
-| ドキュメント | 説明 |
-|------------|------|
-| **[⚙️ systemdセットアップ](docs/SYSTEMD.md)** | Linuxサーバーでの自動起動設定 |
-| **[💻 開発者ガイド](docs/DEVELOPMENT.md)** | 開発環境、環境切り替え、拡張方法 |
-| **[📋 変更履歴](docs/CHANGELOG.md)** | バージョン履歴と更新内容 |
-
+---
 
 ## ✨ 主な機能
 
-### チャンネル制限機能
+- 📅 **予約管理** - `/reserve`, `/cancel`, `/complete`, `/edit`
+- 📋 **一覧表示** - `/list`, `/my-reservations`
+- 🔍 **オートコンプリート** - 日付・時刻の入力支援
+- 🎨 **埋め込みメッセージ** - 視認性の高いUI
+- 🔒 **Ephemeralメッセージ** - プライバシー保護
+- 🗑️ **自動クリーンアップ** - 古い予約の自動削除
+- 📊 **ロギング機能** - コマンド統計の記録
+- 💬 **匿名フィードバック** - `/feedback`
 
-### 予約管理コマンド
+詳細は **[📝 コマンドリファレンス](docs/COMMANDS.md)** へ
 
-### 表示コマンド
-
-### ユーティリティコマンド
-
-詳細は **[📝 コマンドリファレンス](docs/COMMANDS.md)** をご覧ください。
-
-
-## 🎯 主な特徴
-
-
+---
 
 ## 🔧 技術スタック
 
+- **言語**: Go 1.21+
+- **ライブラリ**:
   - [discordgo](https://github.com/bwmarrin/discordgo) - Discord API
   - [godotenv](https://github.com/joho/godotenv) - 環境変数管理
+- **データ保存**: JSON
 
+---
 
 ## 📖 プロジェクト構造
 
 ```
 booking.hxs/
-├── main.go                    # エントリーポイント
-├── go.mod / go.sum            # Go モジュール
-├── Makefile                   # ビルドタスク
-├── setup.sh                   # セットアップスクリプト
-├── manage_deps.sh             # 依存関係管理
-├── switch_env.sh              # 環境切り替え
-├── .env                       # 環境変数（要設定）
-├── reservations.json          # 予約データ（自動生成）
-│
-├── bin/                       # ビルド成果物
-├── config/                    # 設定ファイル
-│   ├── .env.example           # 環境変数テンプレート
-│   ├── .env.development       # 開発環境設定
-│   ├── .env.production        # 本番環境設定
-│   └── booking-hxs.service    # systemdサービスファイル
-│
-├── commands/                  # コマンドハンドラー
-├── models/                    # データモデル
-├── storage/                   # データ永続化
-├── logging/                   # ログ管理
-├── logs/                      # ログファイル（自動生成）
-│
-└── docs/                      # ドキュメント
-    ├── SETUP.md               # 起動ガイド
-    ├── COMMANDS.md            # コマンドリファレンス
-    ├── DATA_MANAGEMENT.md     # データ管理
-    ├── SYSTEMD.md             # systemdセットアップ
-    ├── DEVELOPMENT.md         # 開発者ガイド
-    └── CHANGELOG.md           # 変更履歴
+├── cmd/bot/              # アプリケーションエントリーポイント
+│   └── main.go           # メインファイル
+├── internal/             # プライベートアプリケーションコード
+│   ├── commands/         # コマンドハンドラー（コマンドごとに分割）
+│   ├── models/           # データモデル
+│   ├── storage/          # データ永続化
+│   └── logging/          # ロギング機能
+├── config/               # 設定ファイル
+├── data/                 # データファイル
+├── docs/                 # ドキュメント
+└── bin/                  # ビルド成果物
 ```
 
+**設計思想**: Go標準プロジェクトレイアウトに準拠
+- `cmd/` - 複数バイナリ対応可能な構造
+- `internal/` - 外部インポート不可（Go言語仕様）
+- `commands/` - 各コマンドを独立したファイルで管理
+
+詳細は **[💻 開発者ガイド](docs/DEVELOPMENT.md)** へ
+
+---
 
 ## 🛠️ よく使うコマンド
 
 ```bash
 # セットアップ
 ./setup.sh                  # 初回セットアップ
-make setup                  # または Makefile 経由
 
 # 実行
 make run                    # 開発モードで実行
-make dev                    # ホットリロード（air必要）
-
-# ビルド
-make build                  # ビルドのみ
-make start                  # ビルド＋実行
+make build                  # ビルド
 
 # 環境切り替え
 ./switch_env.sh development # 開発環境
 ./switch_env.sh production  # 本番環境
-
-# コード品質
-make fmt                    # フォーマット
-make vet                    # 静的解析
-make check                  # fmt + vet
 
 # その他
 make help                   # コマンド一覧
 make clean                  # クリーンアップ
 ```
 
+---
 
-## 🚨 トラブルシューティング
+##  ライセンス
 
-### コマンドが表示されない
+MIT License - 詳細は [LICENSE](LICENSE) ファイルをご覧ください。
 
-### Botが起動しない
+---
 
-### 予約が保存されない
-
-詳細は **[📖 アプリの起動ガイド](docs/SETUP.md)** のトラブルシューティングセクションをご覧ください。
-
-
-## 📄 ライセンス
-
-このプロジェクトは MIT ライセンスの下で公開されています。詳細は [LICENSE](LICENSE) ファイルをご覧ください。
-
-
-## 🤝 コントリビューション
+## 🤝 フィードバック
 
 バグ報告や機能要望は、Discord Botの `/feedback` コマンドでお送りください（完全匿名）。
 
-
-**作成**: 2025年
-**バージョン**: v1.2.0
-**Go**: 1.21+
-
-### 1. 前提条件
-
-- Go 1.21以上がインストールされていること
-3. 左側のメニューから「Bot」を選択
-5. 「TOKEN」セクションの「Copy」ボタンをクリックしてトークンをコピー
-6. 「Privileged Gateway Intents」セクションで以下を有効化：
-   - Server Members Intent
-   - Message Content Intent
-
-### 3. Botをサーバーに招待
-
-1. Developer Portalの「OAuth2」→「URL Generator」を選択
-2. 「SCOPES」で `bot` と `applications.commands` を選択
-3. 「BOT PERMISSIONS」で以下を選択：
-   - Send Messages
-   - Use Slash Commands
-   - Read Message History
-4. 生成されたURLをブラウザで開き、Botをサーバーに招待
-
-### 4. プロジェクトのセットアップ（自動セットアップ）
-
-**推奨方法: セットアップスクリプトを使用**
-
-```bash
-# プロジェクトディレクトリに移動
-cd booking.hxs
-
-# 自動セットアップスクリプトを実行
-./setup.sh
-```
-
-このスクリプトは以下を自動で実行します：
-- Goのバージョン確認
-- 依存関係のダウンロードと検証
-- `.env`ファイルの作成
-- ビルドテスト
-
-**または手動セットアップ:**
-
-```bash
-# Makefileを使用（推奨）
-make setup
-
-# または従来の方法
-go mod download
-cp config/.env.example .env
-```
-
-### 5. 環境変数の設定
-
-`.env`ファイルを編集して、必要な情報を設定します：
-
-```env
-DISCORD_TOKEN=your_discord_bot_token_here
-GUILD_ID=your_guild_id_here
-FEEDBACK_CHANNEL_ID=your_feedback_channel_id_here
-```
-
-- `DISCORD_TOKEN`: Discord Developer Portalで取得したBotトークン
-- `GUILD_ID`: BotをテストするDiscordサーバーのID（開発者モードで右クリック→「IDをコピー」）
-- `FEEDBACK_CHANNEL_ID`: フィードバックを受け取るチャンネルのID（開発者モードで右クリック→「IDをコピー」）
-
-**注意**:
-- `GUILD_ID`を設定すると、そのサーバー専用のコマンドとして即座に登録されます。空欄にするとグローバルコマンドとして登録されますが、反映に最大1時間かかります。
-- `FEEDBACK_CHANNEL_ID`を設定しないと、`/feedback`コマンドが使用できません。
-
-### 6. 開発環境と本番環境の切り替え
-
-このプロジェクトは開発環境と本番環境を分離できます：
-
-```bash
-# 開発環境に切り替え
-./switch_env.sh development
-
-# 本番環境に切り替え
-./switch_env.sh production
-```
-
-詳細は [クイックスタートガイド](docs/QUICKSTART.md) を参照してください。
-./switch_env.sh development
-
-# 本番環境に切り替え
-./switch_env.sh production
-```
-
-各環境用の設定ファイル：
-- `.env.development` - 開発環境用
-- `.env.production` - 本番環境用
-
-## 使用方法
-
-### Makefileコマンド一覧
-
-プロジェクトには便利なMakefileコマンドが用意されています：
-
-```bash
-make help          # 利用可能なコマンドを表示
-make setup         # 初回セットアップ
-make deps          # 依存関係をダウンロード
-make install       # 依存関係をインストール
-make build         # ビルド
-make run           # 実行
-make start         # ビルドしてから実行
-make dev           # 開発モード（ホットリロード、airが必要）
-make clean         # ビルド成果物を削除
-make fmt           # コードフォーマット
-make vet           # 静的解析
-make check         # フォーマット+静的解析
-make test          # テスト実行
-```
-
-### Botの起動方法
-
-**推奨: Makefileを使用**
-
-```bash
-# 開発モードで実行（変更を監視）
-make run
-
-# ビルドしてから実行
-make build
-make start
-
-# または一度にビルド＋実行
-# ビルドして実行
-make run
-
-# または手動でビルドして実行
-./bin/booking.hxs
-```
-
-**従来の方法:**
-
-```bash
-# 直接実行
-go run main.go
-
-# ビルドして実行
-go build -o booking.hxs
-./booking.hxs
-```
-
-### 依存関係の管理
-
-依存関係管理スクリプトを使用できます：
-
-```bash
-# 依存関係をインストール
-./manage_deps.sh install
-
-# 依存関係を更新
-./manage_deps.sh update
-
-# 依存関係を一覧表示
-./manage_deps.sh list
-
-# 依存関係を検証
-./manage_deps.sh verify
-
-# ヘルプを表示
-./manage_deps.sh help
-```
-
-### コマンドの使用方法
-
-#### 1. 予約作成 (`/reserve`)
-
-面接の予約を作成します。
-
-**必須オプション:**
-- `date`: 予約日（YYYY/MM/DD形式、例: 2025/10/15）
-- `start_time`: 開始時間（HH:MM形式、例: 14:00）
-
-**任意オプション:**
-- `end_time`: 終了時間（HH:MM形式、例: 15:00）※省略時は開始時刻+1時間
-- `comment`: コメント
-
-**使用例:**
-```
-/reserve date:2025/10/15 start_time:14:00 end_time:15:00 comment:技術面接
-```
-
-**動作:**
-- 予約者には予約IDがプライベート（Ephemeral）メッセージで通知されます
-- チャンネルの全員には予約情報（予約IDを除く）が公開されます
-- 時間が重複している場合は予約できず、エラーメッセージが表示されます
-
-#### 2. 予約取り消し (`/cancel`)
-
-予約をキャンセルします。
-
-**必須オプション:**
-- `reservation_id`: 予約ID
-
-**任意オプション:**
-- `comment`: コメント
-
-**使用例:**
-```
-/cancel reservation_id:a1b2c3d4e5f6g7h8 comment:都合が悪くなったため
-```
-
-**動作:**
-- チャンネルの全員に予約取り消しが通知されます
-
-#### 3. 予約完了 (`/complete`)
-
-予約を完了状態にします。
-
-**必須オプション:**
-- `reservation_id`: 予約ID
-
-**任意オプション:**
-- `comment`: コメント
-
-**使用例:**
-```
-/complete reservation_id:a1b2c3d4e5f6g7h8 comment:面接完了
-```
-
-**動作:**
-- チャンネルの全員に予約完了が通知されます
-
-#### 4. 予約一覧表示 (`/list`)
-
-すべての予約を表示します。
-
-**使用例:**
-```
-/list
-```
-
-**動作:**
-- コマンドを実行した人だけに予約一覧が表示されます（Ephemeral）
-- 予約者のユーザーID、予約ID、状態などが表示されます
-
-#### 5. 自分の予約確認 (`/my-reservations`)
-
-自分の予約のみを表示します。
-
-**使用例:**
-```
-/my-reservations
-```
-
-**動作:**
-- コマンドを実行した人の予約のみが表示されます（Ephemeral）
-
-## データの保存
-
-予約データは `reservations.json` ファイルに自動的に保存されます。
-
-- Bot起動時に既存のデータを読み込みます
-- 予約の作成・更新・削除時に即座に保存されます
-- 5分ごとに定期的に保存されます
-- Bot終了時にも保存されます
-
-## プロジェクト構造
-
-```
-booking.hxs/
-├── main.go                   # エントリーポイント、Bot初期化
-├── go.mod                    # Go モジュール定義
-├── go.sum                    # 依存関係のチェックサム
-├── Makefile                  # ビルドとタスク管理
-├── setup.sh                  # 自動セットアップスクリプト
-├── manage_deps.sh            # 依存関係管理スクリプト
-├── switch_env.sh             # 環境切り替えスクリプト
-├── .air.toml                 # ホットリロード設定（開発用）
-├── .env                      # 環境変数（gitignoreに含まれる）
-├── .env.example              # 環境変数のテンプレート
-├── .env.development          # 開発環境用設定
-├── .env.production           # 本番環境用設定
-├── .gitignore                # Git除外設定
-├── reservations.json         # 予約データ（自動生成）
-├── bin/
-│   └── booking.hxs           # ビルド済みバイナリ
-├── config/
-│   └── booking-hxs.service   # systemdサービスファイル
-├── docs/                     # ドキュメント
-│   ├── SETUP.md              # セットアップガイド
-│   ├── COMMANDS.md           # コマンドリファレンス
-│   ├── SYSTEMD.md            # systemd設定ガイド
-│   ├── DATA_MANAGEMENT.md    # データ管理ガイド
-│   ├── DEVELOPMENT.md        # 開発者ガイド
-│   └── CHANGELOG.md          # 変更履歴
-├── logs/                     # ログファイル（自動生成）
-│   ├── commands_YYYY-MM.log  # 月別コマンドログ
-│   └── command_stats.json    # コマンド統計
-├── models/
-│   └── reservation.go        # 予約データモデルとビジネスロジック
-├── storage/
-│   └── storage.go            # データ永続化処理
-├── logging/
-│   └── logger.go             # ロギング機能
-└── commands/                 # コマンドハンドラー（モジュール分割）
-    ├── handlers.go           # メインルーター
-    ├── autocomplete.go       # オートコンプリート機能
-    ├── reservation_handlers.go  # 予約CRUD操作
-    ├── list_handlers.go      # 一覧表示機能
-    ├── helper_handlers.go    # ヘルプ・フィードバック
-    └── response_helpers.go   # レスポンス・フォーマット関数
-```
-
-## 開発ワークフロー
-
-### 初めて開発を始める場合
-
-```bash
-# 1. セットアップ
-./setup.sh
-
-# 2. 環境変数を設定
-vi .env
-
-# 3. 開発環境で実行
-make run
-```
-
-### 日常の開発フロー
-
-```bash
-# コードを編集後、フォーマットと検証
-make check
-
-# 実行して動作確認
-make run
-
-# ビルドして配布用バイナリを作成
-make build
-```
-
-### 環境を切り替える
-
-```bash
-# 開発環境に切り替え
-./switch_env.sh development
-make run
-
-# 本番環境に切り替え
-./switch_env.sh production
-make start
-```
-
-### 依存関係を更新する
-
-```bash
-# 依存関係を最新版に更新
-./manage_deps.sh update
-
-# または
-make install
-```
-
-### クリーンビルド
-
-```bash
-# すべてをクリーンにしてビルド
-make clean
-make build
-```
-
-## ホットリロード（開発効率化）
-
-開発時にファイルの変更を自動検知して再起動する機能を利用できます：
-
-```bash
-# airをインストール
-go install github.com/cosmtrek/air@latest
-
-# ホットリロードで起動
-make dev
-```
-
-## トラブルシューティング
-
-### コマンドが表示されない
-
-- Botが正しくサーバーに招待されているか確認
-- `GUILD_ID`が正しく設定されているか確認
-- Botに適切な権限が付与されているか確認
-
-### 予約データが消える
-
-- `reservations.json`ファイルが削除されていないか確認
-- ファイルの書き込み権限があるか確認
-
-### Botが起動しない
-
-- `DISCORD_TOKEN`が正しく設定されているか確認
-- `.env`ファイルが正しい場所に配置されているか確認
-- Goのバージョンが1.21以上か確認
-
-### 依存関係のエラー
-
-```bash
-# 依存関係をクリーンアップして再インストール
-./manage_deps.sh clean
-./manage_deps.sh install
-
-# または
-make clean
-make install
-```
-
-### ビルドエラー
-
-```bash
-# Go モジュールを整理
-go mod tidy
-
-# コードをフォーマット
-make fmt
-
-# 静的解析で問題をチェック
-make vet
-```
-
-## データ管理
-
-### 自動クリーンアップ機能
-
-このBotには、予約データが永久的に蓄積しないように、自動クリーンアップ機能が実装されています。
-
-**機能:**
-1. **期限切れ予約の自動完了**（毎日午前3時）
-   - 終了時刻が過ぎた `pending` 予約を自動的に `completed` に変更
-   - 毎日午前3時に実行されます
-
-2. **古い予約の自動削除**（毎日午前3時10分）
-   - `completed` または `cancelled` ステータスの予約で、最終更新から **30日以上** 経過したものを自動削除
-   - 毎日午前3時10分に実行されます
-
-詳細は [クリーンアップガイド](docs/CLEANUP.md) を参照してください。
-
-## 📚 ドキュメント
-
-より詳しい情報は、以下のドキュメントを参照してください：
-
-### 📖 基本ガイド
-- **[クイックスタートガイド](docs/QUICKSTART.md)** - 最速でBotを起動する方法
-- **[コマンドリファレンス](docs/COMMANDS.md)** - すべてのコマンドの詳細な使い方
-- **[開発ガイド](docs/DEVELOPMENT.md)** - 開発環境のセットアップと開発フロー
-- **[プロジェクト概要](docs/PROJECT_SUMMARY.md)** - プロジェクトの全体像と構造
-- **[プロジェクト構造](docs/PROJECT_STRUCTURE.md)** - ディレクトリ構造とファイル配置の詳細
-
-### 🔧 運用ガイド
-- **[クリーンアップガイド](docs/CLEANUP.md)** - 予約データの自動クリーンアップ機能
-- **[ロギングガイド](docs/LOGGING.md)** - ログ機能とコマンド統計
-- **[systemd セットアップ](docs/SYSTEMD_SETUP.md)** - Linux サーバーでの自動起動設定（詳細版）
-- **[systemd クイックリファレンス](docs/SYSTEMD_QUICK_REFERENCE.md)** - サービスファイルの設定早見表
-
-### 📁 設定ファイル
-- **[config/](config/)** - 設定ファイルのサンプルとテンプレート
-  - `.env.example` - 環境変数の設定例
-  - `.env.development` - 開発環境用設定
-  - `.env.production` - 本番環境用設定
-  - `booking-hxs.service` - **systemd サービスファイル**（本番運用時に使用）
-  - `.air.toml` - ホットリロード設定
-
-**サービスファイルの使用方法**:
-- Linux サーバーで自動起動させる場合は、`config/booking-hxs.service` を `/etc/systemd/system/` にコピーして使用します
-- 詳細は [systemd セットアップガイド](docs/SYSTEMD_SETUP.md) を参照してください
-
-### 🛠️ スクリプト
-- **`setup.sh`** - 自動セットアップスクリプト
-- **`switch_env.sh`** - 環境切り替えスクリプト
-- **`manage_deps.sh`** - 依存関係管理スクリプト
-- **`setup-systemd.sh`** - systemd セットアップスクリプト
-
-## ライセンス
-
-このプロジェクトはMITライセンスの下で公開されています。
-
-## 貢献
-
-バグ報告や機能追加の提案は、GitHubのIssuesでお願いします。
-
-## 作者
-
-[dice](https://github.com/dice-2004)
-<!-- Collaboratorsは以下に追加を -->
+---
+
+**バージョン**: v1.4.0<br>
+**作成**: 2025年<br>
+**Go**: 1.21+<br>
+**開発者**:
+- [dice](https://github.com/dice-2004)
+<!-- ここに追加 -->
