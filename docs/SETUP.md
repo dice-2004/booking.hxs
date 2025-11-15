@@ -12,8 +12,6 @@
 - [環境の切り替え](#環境の切り替え)
 - [トラブルシューティング](#トラブルシューティング)
 
----
-
 ## 前提条件
 
 ### 必須
@@ -33,8 +31,6 @@ go version
 git --version
 # 出力例: git version 2.34.1
 ```
-
----
 
 ## Discord Botの作成
 
@@ -104,7 +100,6 @@ git --version
 1. フィードバックを受け取りたいチャンネルを右クリック
 2. **「IDをコピー」** を選択
 
----
 
 ## プロジェクトのセットアップ
 
@@ -146,7 +141,6 @@ mkdir -p bin logs
 go build -o bin/booking.hxs cmd/bot/main.go
 ```
 
----
 
 ## 環境変数の設定
 
@@ -185,7 +179,7 @@ FEEDBACK_CHANNEL_ID=your_feedback_channel_id_here
 
 
 
----
+
 
 ## Botの起動
 
@@ -267,7 +261,6 @@ Reservations saved successfully
 ...
 ```
 
----
 
 ## 環境の切り替え
 
@@ -317,7 +310,6 @@ ENV=production
 
 **注**: `DATA_FILE` 環境変数は使用されません。データは常に `data/reservations.json` に保存されます。
 
----
 
 ## ホットリロード（開発効率化）
 
@@ -343,7 +335,6 @@ air
 
 ファイルを編集すると、自動的に再ビルド＆再起動されます。
 
----
 
 ## 次のステップ
 
@@ -354,7 +345,6 @@ air
 - **[systemdセットアップ](SYSTEMD.md)** - 本番環境での自動起動
 - **[開発者ガイド](DEVELOPMENT.md)** - カスタマイズと拡張
 
----
 
 ## よく使うコマンドまとめ
 
@@ -383,7 +373,6 @@ make help                     # コマンド一覧
 make clean                    # クリーンアップ
 ```
 
----
 
 ## トラブルシューティング
 

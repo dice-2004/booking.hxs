@@ -12,7 +12,7 @@
 - [トラブルシューティング](#トラブルシューティング)
 - [サービスファイルリファレンス](#サービスファイルリファレンス)
 
----
+
 
 ## 前提条件
 
@@ -37,7 +37,6 @@ go version
 ls -la /home/hxs/booking.hxs
 ```
 
----
 
 ## セットアップ方法
 
@@ -136,7 +135,7 @@ sudo systemctl start booking-hxs
 sudo systemctl status booking-hxs
 ```
 
----
+
 
 ## 環境変数の設定
 
@@ -222,7 +221,6 @@ sudo systemctl daemon-reload
 sudo systemctl restart booking-hxs
 ```
 
----
 
 ## サービスの管理
 
@@ -287,7 +285,6 @@ sudo systemctl is-active booking-hxs
 # 出力: active（起動中）または inactive（停止中）
 ```
 
----
 
 ## ログの確認
 
@@ -338,7 +335,6 @@ tail -f /home/hxs/booking.hxs/logs/commands_2025-11.log
 cat /home/hxs/booking.hxs/logs/command_stats.json | jq .
 ```
 
----
 
 ## トラブルシューティング
 
@@ -453,7 +449,6 @@ sudo journalctl -u booking-hxs -p err --no-pager
    df -h
    ```
 
----
 
 ## サービスファイルリファレンス
 
@@ -502,7 +497,6 @@ Environment="FEEDBACK_CHANNEL_ID=your_channel_id"
 EnvironmentFile=/home/hxs/booking.hxs/.env
 ```
 
----
 
 ## 運用Tips
 
@@ -550,7 +544,6 @@ cp /home/hxs/booking.hxs/data/reservations.json $BACKUP_DIR/reservations_$DATE.j
 find $BACKUP_DIR -name "reservations_*.json" -mtime +7 -delete
 ```
 
----
 
 ## まとめ
 

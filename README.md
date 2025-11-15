@@ -1,37 +1,6 @@
 # booking.hxs - Discord Bot 部室予約システム
 
-Go言語で作成されたDiscord Bot用の部室予約システムです。スラッシュコマンドを使用して、部室の予約作成、編集、取り消し、完了を管理できます。
-
-## 🚀 クイックスタート
-
-```bash
-# セットアップ（初回のみ）
-./setup.sh
-
-# 環境変数を設定
-vi .env  # DISCORD_TOKEN, GUILD_ID, FEEDBACK_CHANNEL_ID を設定
-
-# 起動
-make run
-```
-
-詳しくは **[📖 セットアップガイド](docs/SETUP.md)** をご覧ください。
-
----
-
-## 📚 ドキュメント
-
-| カテゴリ | ドキュメント | 説明 |
-|---------|------------|------|
-| **基本** | **[📖 セットアップガイド](docs/SETUP.md)** | 環境構築から起動まで |
-| | **[📝 コマンドリファレンス](docs/COMMANDS.md)** | 全コマンドの使い方 |
-| **運用** | **[🗄️ データ管理](docs/DATA_MANAGEMENT.md)** | データ保存とクリーンアップ |
-| | **[⚙️ systemdセットアップ](docs/SYSTEMD.md)** | サーバーでの自動起動 |
-| **開発** | **[💻 開発者ガイド](docs/DEVELOPMENT.md)** | 開発環境と拡張方法 |
-| **変更履歴** | **[📋 CHANGELOG](docs/CHANGELOG.md)** | バージョン履歴（概要） |
-| | **[📝 リリースノート](docs/RELEASE_NOTES.md)** | 詳細なリリース情報 |
-
----
+Go言語で作成されたDiscord Bot用の部室予約システムです。スラッシュコマンドを使用して、部室の予約作成、編集、取り消し、完了を管理できます。また、このBotはHxSコンピュータ部内のサーバ上で動作しています。
 
 ## ✨ 主な機能
 
@@ -46,7 +15,6 @@ make run
 
 詳細は **[📝 コマンドリファレンス](docs/COMMANDS.md)** へ
 
----
 
 ## 🔧 技術スタック
 
@@ -56,7 +24,18 @@ make run
   - [godotenv](https://github.com/joho/godotenv) - 環境変数管理
 - **データ保存**: JSON
 
----
+## 📚 ドキュメント
+
+| カテゴリ | ドキュメント | 説明 |
+|---------|------------|------|
+| **基本** | **[📖 セットアップガイド](docs/SETUP.md)** | 環境構築から起動まで |
+| | **[📝 コマンドリファレンス](docs/COMMANDS.md)** | 全コマンドの使い方 |
+| **運用** | **[🗄️ データ管理](docs/DATA_MANAGEMENT.md)** | データ保存とクリーンアップ |
+| | **[⚙️ systemdセットアップ](docs/SYSTEMD.md)** | サーバーでの自動起動 |
+| **開発** | **[💻 開発者ガイド](docs/DEVELOPMENT.md)** | 開発環境と拡張方法 |
+| **変更履歴** | **[📋 CHANGELOG](docs/CHANGELOG.md)** | バージョン履歴（概要） |
+| | **[📝 リリースノート](docs/RELEASE_NOTES.md)** | 詳細なリリース情報 |
+
 
 ## 📖 プロジェクト構造
 
@@ -82,7 +61,22 @@ booking.hxs/
 
 詳細は **[💻 開発者ガイド](docs/DEVELOPMENT.md)** へ
 
----
+
+## 🚀 クイックスタート
+
+```bash
+# セットアップ（初回のみ）
+./setup.sh
+
+# 環境変数を設定
+vi .env  # DISCORD_TOKEN, GUILD_ID, FEEDBACK_CHANNEL_ID を設定
+
+# 起動
+make run
+```
+
+詳しくは **[📖 セットアップガイド](docs/SETUP.md)** をご覧ください。
+
 
 ## 🛠️ よく使うコマンド
 
@@ -103,13 +97,11 @@ make help                   # コマンド一覧
 make clean                  # クリーンアップ
 ```
 
----
 
 ##  ライセンス
 
 MIT License - 詳細は [LICENSE](LICENSE) ファイルをご覧ください。
 
----
 
 ## 🤝 フィードバック
 
